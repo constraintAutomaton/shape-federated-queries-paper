@@ -5,7 +5,7 @@
 )
 
 #show: lncs.with(
-  title: "Shape Index Journal",
+  title: "From Traversal to Dynamic Federation: Rethinking Link Traversal Query Processing via Subwebs and RDF Shapes",
   thanks: "Supported by organization x.",
   authors: (
     author("Bryan-Elliott Tam", 

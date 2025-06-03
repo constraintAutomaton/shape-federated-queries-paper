@@ -43,3 +43,4 @@ Additionally, there are contributions focused on building statistics over SPARQL
 - Compare shape index with other summary methods
 - Evaluate re-execution performance in the context of LTQP
   - Perform a "federated query" over the index while storing the reachability criteria and then perform the traversal over does seed documents
+- Formalize an approach for adaptative query planning using shape index
