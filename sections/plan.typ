@@ -2,7 +2,7 @@
 
 == What is general goal of that paper
 
-We aim to show that, in the context of large decentralized networks, mapping RDF data shapes to a knowledge graph can improve query execution time and reduce network usage.
+The primary goal of this paper is to demonstrate that, in the context of large decentralized networks, mapping RDF data shapes to a knowledge graph can improve query execution efficiency and reduce network usage by modeling LTQP as a federated query executed over a dynamic federation.
 
 == Why do want to do that?
 
@@ -39,6 +39,7 @@ Additionally, there are contributions focused on building statistics over SPARQL
 
 === New Material
 
+- Formalize LTQP in terms of federated queries
 - Adapt FedUP to use a shape index
 - Compare shape index with other summary methods
 - Evaluate re-execution performance in the context of LTQP
