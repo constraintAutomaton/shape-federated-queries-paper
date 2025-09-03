@@ -33,6 +33,7 @@ Additionally, there are contributions focused on building statistics over SPARQL
   - Measurement of prioritization using the R3 metric (with adaptation for pruning)
   - Measurement of diefficiency metric
   - Evaluation of the relationship between the reduction in HTTP requests and the reduction in query execution time
+  - Time complexity of the queries
 
 - Further formalization:
   - Proof of the time complexity of the query subsumption algorithm (already done)

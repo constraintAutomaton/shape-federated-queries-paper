@@ -5,7 +5,7 @@ main.pdf: ${SOURCE}
 
 .PHONY: clean dev
 
-dev:
+watch:
 	typst watch main.typ
 
 clean:

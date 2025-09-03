@@ -1,11 +1,12 @@
 #import "@preview/fine-lncs:0.1.0": lncs, institute, author, theorem, proof
+#import "@preview/abbr:0.2.3"
 
-#let inst_gent = institute("Universiteit Gent", 
+#let inst_gent = institute("Ghent University", 
   email: "{firstname.lastname}@ugent.be"
 )
 
 #show: lncs.with(
-  title: "From Traversal to Dynamic Federation: Rethinking Link Traversal Query Processing via Subwebs and RDF Shapes",
+  title: "From Traversal to Dynamic Federation: Rethinking Link Traversal Query Processing through Subwebs and RDF Shapes",
   thanks: "Supported by organization x.",
   authors: (
     author("Bryan-Elliott Tam", 
@@ -22,9 +23,16 @@
     ),
   ),
   abstract: [
+    #include "sections/abstract.typ"
   ],
-  keywords: ("Linked Data"),
+  keywords: ("Linked Data", "LTQP", "Federated Queries"),
   bibliography: bibliography("refs.bib")
 )
 
-#include "sections/plan.typ"
+#abbr.make(
+  ("KG", "knowledge graph"),
+)
+
+#include "sections/preliminaries.typ"
+
+Acrotastic is a #abbr.a[KG]! This #abbr.a[KG] enables easy acronym manipulation.
