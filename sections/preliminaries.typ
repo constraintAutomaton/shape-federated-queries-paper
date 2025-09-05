@@ -19,11 +19,11 @@ It proposes to model federated queries as query over a set of federation members
 FedQPL define a number of expressions.
 In this paper we consider the following operators.
 
-$phi ::= upright("req")^upright("tp")_f | upright("mu") (Phi) | upright("mj") (Phi) | upright("filter")^R (phi)| upright("leftjoin")(phi, phi)$
+$phi ::= upright("req")^upright("T")_f | upright("mu") (Phi) | upright("mj") (Phi) | upright("filter")^R (phi)| upright("leftjoin")(phi_i, phi_j))$
 
-Where $phi$ is FedQPL expression and $Phi$ a set of FedQPL expression.
-$upright("req")^upright("tp")_f$
-
+Where $phi$ is a FedQPL expression and $Phi$ is a set of FedQPL expressions.
+$upright("req")^upright("T")_f$ represents the query of a set of triple patterns $upright("T")$ to a federation member $f$.
+$upright("mu")(Phi)$, $upright("mj")(Phi)$, and $upright("leftjoin")(phi_i, phi_j)$ represent the union, join, and left join of FedQPL expressions, respectively, which correspond to the same operations over the resulting solution mappings of those expressions.
 
 == Decentralized Knowledge Graphs and Subweb #cite(<tam2025>, supplement: "section 3.3")
 

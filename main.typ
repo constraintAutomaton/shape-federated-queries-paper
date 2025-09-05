@@ -31,8 +31,8 @@
 
 #abbr.make(
   ("KG", "knowledge graph"),
+  ("ESA", "exhaustive source assignments")
 )
 
 #include "sections/preliminaries.typ"
-
-Acrotastic is a #abbr.a[KG]! This #abbr.a[KG] enables easy acronym manipulation.
+#include "sections/approach.typ"
