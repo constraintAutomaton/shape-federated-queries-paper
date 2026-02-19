@@ -1,0 +1,12 @@
+- Source selection
+    - Query Plan (Req)
+    - Dereferencing
+    - Competing or equivalent
+        - We can look at the difference between the two
+D1 local
+
+baseline avg time: 4694.176574530003 +- 77.56958745736235
+methods avg time: 4152.0853141800035 +- 54.05740644567036
+
+
+- Prunning in the join seems to be the non-competing optimization

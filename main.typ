@@ -34,5 +34,4 @@
   ("ESA", "exhaustive source assignments")
 )
 
-#include "sections/preliminaries.typ"
-#include "sections/approach.typ"
+#include "sections/fed_query_approach.typ"
