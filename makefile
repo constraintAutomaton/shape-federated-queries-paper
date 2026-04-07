@@ -1,9 +1,10 @@
 SOURCE= refs.bib sections/*.typ main.typ
 
+.PHONY: clean dev watch
+
 main.pdf: ${SOURCE}
 	typst compile main.typ
 
-.PHONY: clean dev
 
 watch:
 	typst watch main.typ

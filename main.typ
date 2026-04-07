@@ -1,23 +1,23 @@
 #import "@preview/fine-lncs:0.1.0": lncs, institute, author, theorem, proof
 #import "@preview/abbr:0.2.3"
 
-#let inst_gent = institute("Ghent University", 
+#let inst_gent = institute("Ghent University",
   email: "{firstname.lastname}@ugent.be"
 )
 
 #show: lncs.with(
-  title: "From Traversal to Dynamic Federation: Rethinking Link Traversal Query Processing through Subwebs and RDF Shapes",
+  title: "Using RDF Data Shapes For Large Scale SPARQL Federated Queries",
   thanks: "Supported by organization x.",
   authors: (
-    author("Bryan-Elliott Tam", 
+    author("Bryan-Elliott Tam",
       insts: (inst_gent),
       oicd: "0000-0003-3467-9755",
     ),
-    author("Ruben Taelman", 
+    author("Ruben Taelman",
       insts: (inst_gent),
       oicd: "0000-0001-5118-256X",
     ),
-    author("Pieter Colpaert", 
+    author("Pieter Colpaert",
       insts: (inst_gent),
       oicd: "0000-0001-6917-2167",
     ),
@@ -25,13 +25,16 @@
   abstract: [
     #include "sections/abstract.typ"
   ],
-  keywords: ("Linked Data", "LTQP", "Federated Queries"),
+  keywords: ("Linked Data", "Federated Queries", "Shape", "ShEx", "SHACL"),
   bibliography: bibliography("refs.bib")
 )
 
 #abbr.make(
-  ("KG", "knowledge graph"),
-  ("ESA", "exhaustive source assignments")
+  ("KG", "Knowledge Graph"),
+  ("ESA", "Exhaustive Source Assignments")
 )
 
-#include "sections/fed_query_approach.typ"
+#include "sections/introduction.typ"
+#include "sections/related_works.typ"
+#include "sections/supplemental_material_statement.typ"
+#include "sections/declaration_gen_ai.typ"

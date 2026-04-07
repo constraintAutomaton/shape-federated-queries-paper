@@ -1,0 +1,2 @@
+- [ ] All submissions are expected to include a mandatory  Supplemental Material Statement  that may contain links to code and data repositories. In case this is not possible, the statement must be justified.
+- [ ] Maximum 15 pages, excluding reference and "Declaration of use of Generative AI", but including Supplemental materials and annexes.

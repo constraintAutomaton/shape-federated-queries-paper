@@ -1,20 +1,19 @@
 // Context
-Federated queries of RDF data is a young field.
-SPARQL 1.1 specify how to perform such queries using `SERVICE` clauses.
-Such clauses necessitate the query issuer to have an a good understanding of the distribution of the data between the federation member.
-Automatic source selection of federated query is an even younger field that attempt to solve the problem of having a deep understanding of the distribution of data.
-Such algorithm, become even more useful when large federation are considered however few algorithm currently support the querying of federation larger than 12 members.
+Federated querying of RDF data sources using SPARQL 1.1 relies on `SERVICE` clauses,
+which require the query issuer to know how data is distributed across federation members.
+Automatic source selection algorithms address this requirement,
+but few currently support federations larger than 12 members.
 // Need
-The only current open source algoritm able to perform such queries is called Fedup.
-The Fedup algorithm relies on building a custom summary of the federation member content to perform calculation to optimize query planning.
-However, those summaries are expensive to build and so far can only be used by this specific algorithm.
-We propose that such approach is restrictive and does not create an insentive for the wildspread of large scale federated queries.
+The only open-source algorithm capable of querying such large federations is Fedup,
+which constructs custom summaries of federation member's content to optimize query planning.
+However, these summaries are expensive to build and are usable only by Fedup itself,
+limiting their broader applicability and reducing incentives for adoption of large-scale federated querying.
 // Task
-In this paper we propose to use RDF data shapes as summary to be used in an algorithm using the Fedup approach.
-We posit that RDF data shapes being a standard and having multiple uses is a better suited summary of information furthermore
-they enable better optimization potential then the custom summary proposed by the Fedup algorithm.
+We propose using RDF data shapes as an alternative summary representation within the Fedup approach.
+RDF data shapes are a W3C standard with uses beyond source selection,
+making them more reusable than Fedup's custom summaries.
 // Object
-In this paper, we formalze our approach, we prove how our approach is strictly more expressive than the fedup custom summary and we present a benchmark of the approach.
+We formalize our approach, prove that RDF data shapes are strictly more expressive
+than Fedup's custom summaries, and present a benchmark evaluation.
 // Findings
-
 // Conclusion
