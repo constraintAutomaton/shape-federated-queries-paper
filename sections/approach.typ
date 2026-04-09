@@ -40,6 +40,19 @@ This can be important source of optmization as such summaries can determine that
 is `foaf:name` and the predicate is `foaf:givenName` with a joining subject, then the query engine can know that this federation member cannot
 answer the join of those triple patterns.
 
+RDF data shape does not only express the join of triple sharing the same subject it also express further constraint about the object of the
+of such triples, for instance it can express that an object is an IRI or a litteral
+
+`shex
+my:UserShape {
+  rdf:type [foaf:Person]
+}
+
+my:UserShape {
+  a [foaf:Person]
+}
+
+`
 === Expressivity
 
 === Using a #abbr.a("SGSC")
