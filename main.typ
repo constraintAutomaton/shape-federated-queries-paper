@@ -31,10 +31,12 @@
 
 #abbr.make(
   ("KG", "Knowledge Graph"),
-  ("ESA", "Exhaustive Source Assignments")
+  ("ESA", "Exhaustive Source Assignments"),
+  ("SGSC" ,"Set of Graph Summaries with Constraint")
 )
 
 #include "sections/introduction.typ"
 #include "sections/related_works.typ"
+#include "sections/approach.typ"
 #include "sections/supplemental_material_statement.typ"
 #include "sections/declaration_gen_ai.typ"
