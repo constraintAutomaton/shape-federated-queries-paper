@@ -6,7 +6,7 @@
 )
 
 #show: lncs.with(
-  title: "Using RDF Data Shapes For Large Scale SPARQL Federated Queries",
+  title: "Shape-Aware Source Selection for Large-Scale SPARQL Federation",
   thanks: "Supported by organization x.",
   authors: (
     author("Bryan-Elliott Tam",
@@ -32,11 +32,14 @@
 #abbr.make(
   ("KG", "Knowledge Graph"),
   ("ESA", "Exhaustive Source Assignments"),
-  ("SGSC" ,"Set of Graph Summaries with Constraint")
+  ("SGSC" ,"Set of Graph Summaries with Constraint"),
+  ("SASS", "Shape-Aware Source Selection"),
+  ("LTQP", "Link Traversal Query Processing")
 )
 
 #include "sections/introduction.typ"
 #include "sections/related_works.typ"
+#include "sections/foundation.typ"
 #include "sections/approach.typ"
 #include "sections/supplemental_material_statement.typ"
 #include "sections/declaration_gen_ai.typ"
