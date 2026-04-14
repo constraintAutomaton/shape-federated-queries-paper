@@ -13,9 +13,8 @@ algorithm (@sec-sass).
 == Endpoint Summaries via RDF Data Shapes <sec-sgsc>
 
 The HiBISCuS algorithm @saleem2014hibiscus proposes a summary approach, later refined by FedUP @aimonierdavat:hal-04538238, to improve federated query performance.
-These summaries are custo
-m #abbr.pls[KG] that, for each endpoint, characterize the predicates available for RDF terms with respect to the endpoint's _authority_#footnote[The authority as defined by the #link("https://datatracker.ietf.org/doc/html/rfc3986")[Uniform Resource Identifier (URI): Generic Syntax] specification.] in its IRI.
-In this paper, we use _authority_ to denote the endpoint-identifying IRI component in expressions of the form `http://{authority}/schema/...`.
+These summaries are #abbr.pls("KG") that, for each endpoint, characterize the predicates available for #abbr.a("RDF") terms with respect to the endpoint's _authority_#footnote[The authority as defined by the #link("https://datatracker.ietf.org/doc/html/rfc3986")[Uniform Resource Identifier (URI): Generic Syntax] specification.] in its IRI.
+In this paper, we use _authority_ to denote the endpoint-identifying IRI component in expressions of the form `http://{authority}/schema/{rest}`.
 If evaluating a query over the summary yields an empty bag, then evaluating the same query over the federation also yields an empty bag @aimonierdavat:hal-04538238.
 #footnote[From Definition 3.3 of FedUP: Querying Large-Scale Federations of SPARQL Endpoints @aimonierdavat:hal-04538238]
 It has to be noted that usally those summaries produce #abbr.pls[KG] significantly smaller then the ones hosted in the endpoints.
@@ -104,7 +103,7 @@ This is another aspect in which #abbr.a("SGSC") is more expressive than HiBISCuS
 == Shape-Aware Source Selection <sec-sass>
 We call our approach _#abbr.a("SASS")_: a result-aware source-selection procedure that operates over an #abbr.a("SGSC") rather than a plain HiBISCuS-type summary.
 To position SASS with respect to prior work, we first restate the Result-Aware source-selection procedure used in FedUP.
-Algorithm @alg-fedup-result-aware is reproduced from FedUP (Algorithm 1)@aimonierdavat:hal-04538238.
+@alg-fedup-result-aware is reproduced from FedUP (Algorithm 1)@aimonierdavat:hal-04538238.
 
 #figure(
   algorithm(
@@ -172,36 +171,34 @@ The helper function $"constraint"$ collects all `FILTER` expressions from the qu
 a single conjunctive expression; it also rewrites each ground term (IRI or literal) in a triple
 pattern into a fresh variable and adds an equality filter between that variable and the original term.
 
-In Algorithm @alg-sols-SGSC, the condition $r_"bag" != emptyset and C and k$ has two purposes.
+In @alg-sols-SGSC, the condition $r_"bag" != emptyset and C and k$ has two purposes.
 First, $r_"bag" != emptyset$ confirms that evaluating $phi$ against branch $"kg"$ yields at
 least one result on the summary.
 Second, the conjunct $C and k$ checks whether the shape constraints $C$ of the branch are
-satisfiable together with the filter expression $k$ derived from $phi$ — that is, whether the
-structural and value-level conditions imposed by both the shape and the query are jointly
-consistent.
+satisfiable together with the filter expression $k$ derived from $phi$.
 A branch that fails this satisfiability check is pruned: even if it produces results on the
 summary, those results cannot satisfy the query's filter constraints given the shape of the data.
 
 #figure(
-algorithm(
-  Function($"sols"_"SGSC"$, ($phi$, $S$), {
-    For([$"kg" mapsto C in S$], {
-      Assign[$r_("bag")$][$"sols"(phi, "kg")$]
-      Assign[$k$][$"constraint"(phi)$]
+  algorithm(
+    Function($"sols"_"SGSC"$, ($phi$, $S$), {
+      For([$"kg" mapsto C in S$], {
+        Assign[$r_("bag")$][$"sols"(phi, "kg")$]
+        Assign[$k$][$"constraint"(phi)$]
 
-      IfElseChain([$r_("bag") != emptyset and C and k$],{
-        Return[$r_("bag")$]
-      }
-      )
+        IfElseChain([$r_("bag") != emptyset and C and k$], {
+          Return[$r_("bag")$]
+        })
+      })
+      Return[$#sym.emptyset$]
     })
-    Return[$#sym.emptyset$]
-  }),
-  caption: [$"sols"_{"SGSC"}(phi)$ determines whether a query plan $phi$ can be answered by any member of the federation.],
+  ),
+  caption: [$"sols"_{"SGSC"}(phi, "S")$ determines whether a query plan $phi$ can be answered by any member of the federation.],
   kind: "listing",
   supplement: [Algorithm],
-)
-)<alg-sols-SGSC>
+) <alg-sols-SGSC>
 
+// time complexity here too
 ==== Soundness
 #abbr.a("SASS") preserves the soundness guarantee of FedUP
 @aimonierdavat:hal-04538238: if $"sols"_"SGSC"(phi, S) = emptyset$, then no member of the
@@ -211,3 +208,5 @@ conforms to at least one branch $"kg" arrow.r C$ in $S$.
 If every branch fails the condition $r_"bag" != emptyset and C and k$, then no conforming
 endpoint can satisfy both the structural requirements of $phi$ and its filter constraints,
 and the federation engine may safely prune this plan.
+
+// there is more to say here

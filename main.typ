@@ -34,7 +34,8 @@
   ("ESA", "Exhaustive Source Assignments"),
   ("SGSC" ,"Set of Graph Summaries with Constraint"),
   ("SASS", "Shape-Aware Source Selection"),
-  ("LTQP", "Link Traversal Query Processing")
+  ("LTQP", "Link Traversal Query Processing"),
+  ("RDF", "Resource Description Framework")
 )
 
 #include "sections/introduction.typ"

@@ -5,7 +5,7 @@
 The Web has grown into the largest distributed knowledge repository ever assembled,
 spanning languages, nations, and institutions across both the developed and the developing world.
 Making this information machine-readable and queryable in a principled way has been a long-standing goal of the Semantic Web community.
-The Resource Description Framework (RDF) @w3ConceptsAbstract provides a common data model for representing structured information as directed graphs,
+The  #abbr.a("RDF") @w3ConceptsAbstract provides a common data model for representing structured information as directed graphs,
 and SPARQL 1.1 @w3SPARQLQuery provides a standardized query language over RDF data.
 Together, they enable a vision in which heterogeneous data sources distributed across the Web
 can be queried as if they formed a single, coherent knowledge base.
@@ -44,7 +44,7 @@ Our approach is built on two contributions.
 First, we define the _Set of Graph Summaries with Constraint_ (SGSC),
 a summary structure that maps endpoint knowledge graphs to sets of shape-based constraints.
 Second, we present _Shape-Aware Source Selection_ (SASS),
-an adaptation of FedUP's result-aware source-selection algorithm that operates over an SGSC rather than a plain custom summary.
+an adaptation of FedUP's result-aware source-selection algorithm that operates over an SGSC rather than a custom summary.
 We show that SGSC is strictly more expressive than HiBISCuS-type summaries in two respects:
 it can represent exclusive disjunctions over predicate sets,
 enabling the pruning of unsatisfiable joins,

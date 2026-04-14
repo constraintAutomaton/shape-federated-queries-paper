@@ -10,7 +10,7 @@ However, these summaries are expensive to build and are usable only by Fedup its
 limiting their broader applicability and reducing incentives for adoption of large-scale federated querying.
 // Task
 We propose using RDF data shapes as an alternative summary representation within the Fedup approach.
-RDF data shapes are a W3C standard with uses beyond source selection,
+RDF data shapes are a standard with uses beyond source selection,
 making them more reusable than Fedup's custom summaries.
 // Object
 We formalize our approach, prove that RDF data shapes are strictly more expressive
