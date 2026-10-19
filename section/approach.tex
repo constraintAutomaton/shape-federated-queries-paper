@@ -10,39 +10,32 @@ algorithm (\cref{sec:sass}).
 \subsection{Endpoint Summaries via RDF Data Shapes}\label{sec:sgsc}
 
 The HiBISCuS algorithm~\cite{saleem2014hibiscus} proposes a summary approach, later refined by FedUP~\cite{aimonierdavat:hal-04538238}, to improve federated query performance.
-These summaries are \acp{KG} that, for each endpoint, characterize the predicates available for \ac{RDF} terms with respect to the endpoint's \emph{authority}\footnote{The authority as defined by the \href{https://datatracker.ietf.org/doc/html/rfc3986}{Uniform Resource Identifier (URI): Generic Syntax} specification.} in its IRI.
-In this paper, we use \emph{authority} to denote the endpoint-identifying IRI component in expressions of the form \texttt{http://\{authority\}/schema/\{rest\}}.
-If evaluating a query over the summary yields an empty bag, then evaluating the same query over the federation also yields an empty bag~\cite{aimonierdavat:hal-04538238}.%
-\footnote{From Definition 3.3 of FedUP: Querying Large-Scale Federations of SPARQL Endpoints~\cite{aimonierdavat:hal-04538238}}
-It has to be noted that usually those summaries produce \acp{KG} significantly smaller than the ones hosted in the endpoints.
+These summaries are \acp{KG} that, for each endpoint, characterize the predicates available for \ac{RDF} terms with respect to the endpoint's \emph{authority}\footnote{The authority as defined by the \href{https://datatracker.ietf.org/doc/html/rfc3986}{Uniform Resource Identifier (URI): Generic Syntax} specification.} in its \acp{IRI}.
 
-We propose a different summarization approach, based on RDF data shapes.
-At an abstract level, HiBISCuS-type summaries already capture structural regularities of endpoint data, and RDF shape languages provide a standard mechanism to represent this structure.
-We therefore use RDF data shapes to obtain a reusable and more expressive alternative to the custom summaries used by HiBISCuS and FedUP.
+We propose a different summarization approach, based on \ac{RDF} data shapes.
+At an abstract level, HiBISCuS-type summaries already capture structural regularities of endpoint data, and \ac{RDF} shape languages provide a standard mechanism to represent this structure.
+We therefore use \ac{RDF} data shapes to obtain a reusable and more expressive alternative to the custom summaries used by HiBISCuS and FedUP.
 
-We call this summary an \ac{SGSC}.
-Formally, we consider a finite set of \acp{KG} $\{\mathrm{kg}_1, \dots, \mathrm{kg}_n\}$ and, for each $\mathrm{kg}_i$, a finite set of shape-based constraints $C_i$.
-We define:
-\begin{equation}\label{eq:sgsc-def}
-  \mathrm{SGSC} = \{\mathrm{kg}_1 \mapsto C_1, \mathrm{kg}_2 \mapsto C_2, \dots, \mathrm{kg}_n \mapsto C_n\}
+To describe the content of each federation member, we reuse the \emph{shape index}~\cite{tam2025},
+``a mapping between \ac{RDF} document sets and \ac{RDF} data shapes that describes a subweb controlled by a data provider''~\cite{tam2025},
+where a subweb is ``a (sub)\ac{DKG} defined by the \ac{KG} derived from a set of \acp{IRI} controlled by a data provider''~\cite{tam2025}.
+A shape index is defined as
+
+\begin{equation}\label{eq:shape-index}
+  SI = \{ s_1 \mapsto \mathit{IRI}_1, s_2 \mapsto \mathit{IRI}_2, \dots, s_n \mapsto \mathit{IRI}_n \}
 \end{equation}
-where $\mathrm{kg}_i$ is a \ac{KG} and each $C_i$ is the set of constraints associated with that \ac{KG}.
+
+where $s_i$ is a shape and $\mathit{IRI}_i$ is a set of \acp{IRI}, and it is \emph{complete} when every shape $s_i \in \mathrm{dom}(SI)$ is closed~\cite{tam2025}.
+
+In a federation, a subweb is a set of federation members, identified by the \acp{IRI} of their SPARQL endpoints.
+Each $\mathit{IRI}_i$ is thus the set of endpoint \acp{IRI} whose \ac{KG} contains entities conforming to $s_i$.
+In most cases, $\mathit{IRI}_i$ contains a single endpoint; it can however contain several, for instance when data following the same schema are partitioned over multiple endpoints and the constraints of $s_i$ do not distinguish the partitions.
 
 Shape languages can express exclusive unions between sets of triple constraints.
-In an \ac{SGSC}, each admissible alternative can be represented as a distinct constraint set for a \ac{KG}, which makes the \ac{KG}-level summary explicit.
-HiBISCuS-type summaries do not natively encode such exclusivity without introducing additional semantics.
+When a shape is closed, every entity conforming to it satisfies exactly one alternative of such a union and has no other predicate.
+A shape index therefore describes not only which predicates occur in an endpoint, but also which combinations of predicates a single entity can have.
 
-\begin{lstlisting}[caption={ShEx example with an exclusive choice of user name representation.},label={lst:user-alt}]
-ex:UserShape CLOSED {
-  (
-    foaf:name .
-    |
-    foaf:givenName . ;
-    foaf:familyName .
-  ) ;
-  foaf:mbox .
-}
-\end{lstlisting}
+\lstinputlisting[caption={ShEx example with an exclusive choice of user name representation.},label={lst:user-alt}]{code/user_alt.shex}
 
 For example, consider the ShEx shape in \cref{lst:user-alt}.
 It describes users that must have a \texttt{foaf:mbox} and either:
@@ -51,43 +44,40 @@ It describes users that must have a \texttt{foaf:mbox} and either:
   \item a \texttt{foaf:givenName} and a \texttt{foaf:familyName}.
 \end{itemize}
 
-In terms of \cref{eq:sgsc-def}, we model these two alternatives as two distinct admissible constraint sets.
-These distinct sets enable optimization by showing that some joins over available predicates are unsatisfiable for a given endpoint.
-For example, a join on the same subject between a triple with predicate \texttt{foaf:name} and a triple with predicate \texttt{foaf:givenName} cannot be satisfied by any admissible set for that endpoint; therefore, the engine can safely prune this join from the query plan for the corresponding federation member.
-This illustrates one dimension in which \ac{SGSC} is more expressive than HiBISCuS-type summaries.
+Since \texttt{ex:UserShape} is closed, a user conforming to it follows exactly one of these alternatives.
+Hence, if \texttt{ex:UserShape} is mapped to an endpoint in a shape index, the index describes that no user of this endpoint has both a \texttt{foaf:name} and a \texttt{foaf:givenName}.
+Different users may nevertheless follow different alternatives, so the endpoint can contain users of both kinds.
 
+Beyond the combinations of predicates that an entity can have, \ac{RDF} data shapes also constrain the objects of these predicates.
+We capture these conditions with triple constraints.
 
-RDF data shapes not only express joins of triples sharing the same subject; they also express further constraints on the objects of such triples.
+\begin{definition}[Triple constraint]\label{def:triple-constraint}
+Let $s$ be a shape whose target selects the entities described by $s$.
+A triple constraint of $s$ is a pair $(p, C_O)$, where $p$ is a predicate and
+$C_O$ is either
+(i) a constraint on the value of the object of $p$, or
+(ii) a reference $@s'$ to a shape $s'$, requiring the object of $p$ to conform to $s'$.
+\end{definition}
 
-\begin{lstlisting}[caption={ShEx example using object constraint.},label={lst:shex-object-constraint}]
-ex:UserShape CLOSED {
-  rdf:type [foaf:Person foaf:User] ;
-  foaf:name LITERAL ;
-  foaf:mbox IRI ;
-  ex:hobby @ex:Hobby ;
-}
+\lstinputlisting[caption={ShEx example using object constraint.},label={lst:shex-object-constraint}]{code/object_constraint.shex}
 
-ex:Hobby {
-  foaf:name xsd:string ;
-}
-\end{lstlisting}
-
-For instance, the ShEx schema in \cref{lst:shex-object-constraint} illustrates:
-\begin{itemize}
-  \item a type constraint \texttt{rdf:type [foaf:Person foaf:User]}, restricting admissible subjects;
-  \item a nested shape constraint \texttt{ex:hobby @ex:Hobby}, which requires that the object of \texttt{ex:hobby} satisfies the \texttt{ex:Hobby} shape;
-  \item the shape \texttt{ex:Hobby} itself, which constrains hobbies to have a \texttt{foaf:name} of type \texttt{xsd:string}.
-\end{itemize}
-
-In our terminology, all these conditions are encoded in the sets $C_i$ of an \ac{SGSC}.
-Such constraints can be expressed in SPARQL by using functions such as \texttt{isIRI} and \texttt{datatype}, or by additional triple patterns ensuring that the object satisfies another shape.%
-\footnote{\href{https://www.w3.org/TR/sparql11-query/\#func-rdfTerms}{SPARQL 1.1 RDF term functions}}
-For nested shape constraints, this translation relies on combining triple-pattern matching with these SPARQL expressions.
-This is another aspect in which \ac{SGSC} is more expressive than HiBISCuS-type summaries: FedUP uses the term \texttt{"any"} when an object is a literal~\cite{aimonierdavat:hal-04538238}, whereas an \ac{SGSC} can encode substantially more precise object-level conditions.
+For instance, in \cref{lst:shex-object-constraint}, the triple constraints
+\texttt{(rdf:type, [foaf:Person foaf:User])}, \texttt{(foaf:name, LITERAL)}, and
+\texttt{(foaf:mbox, IRI)} of \texttt{ex:UserShape}, and
+\texttt{(foaf:name, xsd:string)} of \texttt{ex:Hobby}, are of kind~(i),
+as they constrain the value of the object:
+users are of type \texttt{foaf:Person} or \texttt{foaf:User}, their name is a literal, their mailbox is an \ac{IRI}, and hobbies have a name of type \texttt{xsd:string}.
+In contrast, \texttt{(ex:hobby, @ex:Hobby)} is of kind~(ii),
+as it requires the object of \texttt{ex:hobby} to conform to \texttt{ex:Hobby}.
+Mapped to an endpoint in a shape index, these triple constraints thus describe not only the predicates of the users of this endpoint, but also their objects.
 
 
 
 \subsection{Shape-Aware Source Selection}\label{sec:sass}
+% TODO use for the filter check:
+% Such constraints can be expressed in SPARQL by using functions such as \texttt{isIRI} and \texttt{datatype}, or by additional triple patterns ensuring that the object satisfies another shape.%
+% \footnote{\href{https://www.w3.org/TR/sparql11-query/\#func-rdfTerms}{SPARQL 1.1 RDF term functions}}
+% For nested shape constraints, this translation relies on combining triple-pattern matching with these SPARQL expressions.
 We call our approach \emph{\ac{SASS}}: a result-aware source-selection procedure that operates over an \ac{SGSC} rather than a plain HiBISCuS-type summary.
 To position SASS with respect to prior work, we first restate the Result-Aware source-selection procedure used in FedUP.
 \Cref{alg:fedup-result-aware} is reproduced from FedUP (Algorithm 1)~\cite{aimonierdavat:hal-04538238}.
@@ -183,3 +173,8 @@ endpoint can satisfy both the structural requirements of $\varphi$ and its filte
 and the federation engine may safely prune this plan.
 
 % there is more to say here
+%
+%
+\subsection{Expressiveness compared to other approaches}\label{sec:expressiveness}
+
+%This is another aspect in which \ac{SGSC} is more expressive than HiBISCuS-type summaries: FedUP uses the term \texttt{"any"} when an object is a literal~\cite{aimonierdavat:hal-04538238}, whereas an \ac{SGSC} can encode substantially more precise object-level conditions.

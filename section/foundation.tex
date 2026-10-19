@@ -16,4 +16,10 @@ Intuitively, $\freq_{\mathrm{tp}}^{f}$ requests answers to $\mathrm{tp}$ from $f
 The operators $\fmu(\Phi)$ and $\fmj(\Phi)$ denote the union and (multi-)join of the subplans in $\Phi$, respectively.
 The operator $\ffilter_{R}(\varphi)$ filters the solutions of $\varphi$ by $R$, and $\fleftjoin(\varphi_1, \varphi_2)$ denotes the standard left outer join.
 
+FedQPL is defined under set semantics~\cite{cheng2020fedqpl}, whereas SPARQL evaluates its operators under bag semantics~\cite{w3SPARQLQuery},
+which leaves the answers of federated queries under automatic source selection ambiguous~\cite{tam2026strengthening}.
+We therefore adopt a bag interpretation of FedQPL~\cite{tam2026bag}:
+$\fmu$ and $\fmj$ denote bag union and bag join,
+and a federation is interpreted as the bag union of the \acp{KG} of its members.
+
 Following FedUP~\cite{aimonierdavat:hal-04538238}, we write $\sols(\varphi)$ for the bag of solution mappings obtained by evaluating a plan $\varphi$ over an endpoint summary.

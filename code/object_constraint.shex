@@ -1,0 +1,10 @@
+ex:UserShape CLOSED {
+  rdf:type [foaf:Person foaf:User] ;
+  foaf:name LITERAL ;
+  foaf:mbox IRI ;
+  ex:hobby @ex:Hobby ;
+}
+
+ex:Hobby CLOSED {
+  foaf:name xsd:string ;
+}

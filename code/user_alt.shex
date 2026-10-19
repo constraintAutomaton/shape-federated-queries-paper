@@ -1,0 +1,9 @@
+ex:UserShape CLOSED {
+  (
+    foaf:name .
+    |
+    foaf:givenName . ;
+    foaf:familyName .
+  ) ;
+  foaf:mbox .
+}

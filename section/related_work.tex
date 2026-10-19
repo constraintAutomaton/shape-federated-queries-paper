@@ -20,7 +20,39 @@ FedX~\cite{schwarte2011fedx}, started this research line using an approach sendi
 Both categories degrade beyond approximately twelve federation members~\cite{dang2023fedshop}.
 FedUP~\cite{aimonierdavat:hal-04538238}, inspired by the summary approach of HiBISCuS~\cite{saleem2014hibiscus}, is currently the only open-source system to address this scale,
 using custom knowledge graph summaries to evaluate candidate query plans before execution.
-The present paper proposes replacing these custom summaries with RDF data shapes,
+Odyssey~\cite{montoya2017odyssey} summarizes each federation member by its
+characteristic sets, which are the exact sets of predicates shared by entities,
+and prunes star-shaped subqueries whose predicates are not contained in any
+characteristic set of a member.
+RDF data shapes can encode characteristic sets exactly, using one closed
+alternative per characteristic set, but typically describe them more
+compactly, as one shape with optional constraints covers several
+characteristic sets.
+However, characteristic sets carry no constraints on objects, and so cannot
+prune plans with unsatisfiable filters.
+Moreover, the set of characteristic sets changes whenever an entity acquires a
+new combination of predicates, whereas a shape-based summary remains valid
+under any update that conforms to the shapes.
+Finally, characteristic sets have no standard serialization and,
+to the best of our knowledge, serve no purpose beyond query optimization,
+unlike RDF data shapes.
+MULDER~\cite{endris2018querying} describes federation members with \acp{RDFMT}.
+An \ac{RDFMT} abstracts the entities of an RDF class in a member by the set of
+properties they use, together with the range of each property and its links to
+\acp{RDFMT} of the same member or of other members, and is used for source
+selection and query decomposition.
+As an \ac{RDFMT} gathers all the properties of the instances of a class, it
+cannot express that some properties never co-occur on the same entity, which
+RDF data shapes express through disjunctions.
+Moreover, an \ac{RDFMT} only describes entities with an explicit
+\texttt{rdf:type}, and constrains objects by the range of their property but
+not by their values, so it cannot prune plans whose filters conflict with the
+values held by a member.
+Like characteristic sets, \acp{RDFMT} are a custom summary, whereas RDF data
+shapes are a standard and reusable description.
+Similarly to \acp{RDFMT}, our summary encodes the links between federation
+members, which enables pruning joins across members.
+The present paper proposes replacing the custom summaries of FedUP with RDF data shapes,
 which have already been used to optimize centralized SPARQL queries~\cite{kashif2021,Munoz2018}.
 
 \subsection{RDF Data Shapes}

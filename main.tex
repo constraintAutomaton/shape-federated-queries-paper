@@ -53,8 +53,8 @@
   captionpos=b,
 }
 \renewcommand{\lstlistingname}{Listing}
-\crefname{lstlisting}{Listing}{Listings}
-\Crefname{lstlisting}{Listing}{Listings}
+\AtBeginDocument{\renewcommand{\thelstlisting}{\arabic{lstlisting}}}
+\crefname{listing}{Listing}{Listings}
 \crefname{algorithm}{Algorithm}{Algorithms}
 \crefname{equation}{Equation}{Equations}
 
@@ -65,7 +65,7 @@
   \author{Anonymous}
   \institute{Anonymous}
 \else
-  \title{Shape-Aware Source Selection for Large-Scale SPARQL Federation\thanks{Supported by organization x.}}
+  \title{Shape-Aware Source Selection for Large-Scale SPARQL Federation}
   \author{Bryan-Elliott Tam\orcidID{0000-0003-3467-9755} \and
   Ruben Taelman\orcidID{0000-0001-5118-256X} \and
   Pieter Colpaert\orcidID{0000-0001-6917-2167}}

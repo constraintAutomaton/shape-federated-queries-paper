@@ -1,4 +1,4 @@
-SOURCE = main.tex refs.bib acronyms.tex section/*.tex Makefile
+SOURCE = main.tex refs.bib acronyms.tex section/*.tex code/* Makefile
 
 main.pdf: $(SOURCE)
 	latexmk -pdf -shell-escape main.tex
