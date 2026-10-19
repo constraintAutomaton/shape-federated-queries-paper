@@ -2,3 +2,22 @@
 papers
 .vscode
 reviews/
+
+# LaTeX build artifacts (matches `make clean`)
+*.aux
+*.bbl
+*.text.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+*.log
+*.out
+*.bcf
+*.bcf-SAVE-ERROR
+*.run.xml
+*.synctex.gz
+*-blx.bib
+*.xmpi
+*.xmpdata
+*.abs
+svg-inkscape/

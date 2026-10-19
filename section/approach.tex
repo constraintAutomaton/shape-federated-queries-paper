@@ -1,0 +1,185 @@
+\section{Shape-Guided Federation}\label{sec:approach}
+
+We propose \emph{Shape-Guided Federation}, an approach that replaces the costly custom summaries
+used by HiBISCuS and FedUP with RDF data shapes, which are increasingly published alongside
+SPARQL endpoints and offer greater expressiveness at no additional construction cost.
+We first define our summary structure, the \ac{SGSC} (\cref{sec:sgsc}), then present
+\ac{SASS}, our shape-aware adaptation of FedUP's result-aware source-selection
+algorithm (\cref{sec:sass}).
+
+\subsection{Endpoint Summaries via RDF Data Shapes}\label{sec:sgsc}
+
+The HiBISCuS algorithm~\cite{saleem2014hibiscus} proposes a summary approach, later refined by FedUP~\cite{aimonierdavat:hal-04538238}, to improve federated query performance.
+These summaries are \acp{KG} that, for each endpoint, characterize the predicates available for \ac{RDF} terms with respect to the endpoint's \emph{authority}\footnote{The authority as defined by the \href{https://datatracker.ietf.org/doc/html/rfc3986}{Uniform Resource Identifier (URI): Generic Syntax} specification.} in its IRI.
+In this paper, we use \emph{authority} to denote the endpoint-identifying IRI component in expressions of the form \texttt{http://\{authority\}/schema/\{rest\}}.
+If evaluating a query over the summary yields an empty bag, then evaluating the same query over the federation also yields an empty bag~\cite{aimonierdavat:hal-04538238}.%
+\footnote{From Definition 3.3 of FedUP: Querying Large-Scale Federations of SPARQL Endpoints~\cite{aimonierdavat:hal-04538238}}
+It has to be noted that usually those summaries produce \acp{KG} significantly smaller than the ones hosted in the endpoints.
+
+We propose a different summarization approach, based on RDF data shapes.
+At an abstract level, HiBISCuS-type summaries already capture structural regularities of endpoint data, and RDF shape languages provide a standard mechanism to represent this structure.
+We therefore use RDF data shapes to obtain a reusable and more expressive alternative to the custom summaries used by HiBISCuS and FedUP.
+
+We call this summary an \ac{SGSC}.
+Formally, we consider a finite set of \acp{KG} $\{\mathrm{kg}_1, \dots, \mathrm{kg}_n\}$ and, for each $\mathrm{kg}_i$, a finite set of shape-based constraints $C_i$.
+We define:
+\begin{equation}\label{eq:sgsc-def}
+  \mathrm{SGSC} = \{\mathrm{kg}_1 \mapsto C_1, \mathrm{kg}_2 \mapsto C_2, \dots, \mathrm{kg}_n \mapsto C_n\}
+\end{equation}
+where $\mathrm{kg}_i$ is a \ac{KG} and each $C_i$ is the set of constraints associated with that \ac{KG}.
+
+Shape languages can express exclusive unions between sets of triple constraints.
+In an \ac{SGSC}, each admissible alternative can be represented as a distinct constraint set for a \ac{KG}, which makes the \ac{KG}-level summary explicit.
+HiBISCuS-type summaries do not natively encode such exclusivity without introducing additional semantics.
+
+\begin{lstlisting}[caption={ShEx example with an exclusive choice of user name representation.},label={lst:user-alt}]
+ex:UserShape CLOSED {
+  (
+    foaf:name .
+    |
+    foaf:givenName . ;
+    foaf:familyName .
+  ) ;
+  foaf:mbox .
+}
+\end{lstlisting}
+
+For example, consider the ShEx shape in \cref{lst:user-alt}.
+It describes users that must have a \texttt{foaf:mbox} and either:
+\begin{itemize}
+  \item a \texttt{foaf:name}, or
+  \item a \texttt{foaf:givenName} and a \texttt{foaf:familyName}.
+\end{itemize}
+
+In terms of \cref{eq:sgsc-def}, we model these two alternatives as two distinct admissible constraint sets.
+These distinct sets enable optimization by showing that some joins over available predicates are unsatisfiable for a given endpoint.
+For example, a join on the same subject between a triple with predicate \texttt{foaf:name} and a triple with predicate \texttt{foaf:givenName} cannot be satisfied by any admissible set for that endpoint; therefore, the engine can safely prune this join from the query plan for the corresponding federation member.
+This illustrates one dimension in which \ac{SGSC} is more expressive than HiBISCuS-type summaries.
+
+
+RDF data shapes not only express joins of triples sharing the same subject; they also express further constraints on the objects of such triples.
+
+\begin{lstlisting}[caption={ShEx example using object constraint.},label={lst:shex-object-constraint}]
+ex:UserShape CLOSED {
+  rdf:type [foaf:Person foaf:User] ;
+  foaf:name LITERAL ;
+  foaf:mbox IRI ;
+  ex:hobby @ex:Hobby ;
+}
+
+ex:Hobby {
+  foaf:name xsd:string ;
+}
+\end{lstlisting}
+
+For instance, the ShEx schema in \cref{lst:shex-object-constraint} illustrates:
+\begin{itemize}
+  \item a type constraint \texttt{rdf:type [foaf:Person foaf:User]}, restricting admissible subjects;
+  \item a nested shape constraint \texttt{ex:hobby @ex:Hobby}, which requires that the object of \texttt{ex:hobby} satisfies the \texttt{ex:Hobby} shape;
+  \item the shape \texttt{ex:Hobby} itself, which constrains hobbies to have a \texttt{foaf:name} of type \texttt{xsd:string}.
+\end{itemize}
+
+In our terminology, all these conditions are encoded in the sets $C_i$ of an \ac{SGSC}.
+Such constraints can be expressed in SPARQL by using functions such as \texttt{isIRI} and \texttt{datatype}, or by additional triple patterns ensuring that the object satisfies another shape.%
+\footnote{\href{https://www.w3.org/TR/sparql11-query/\#func-rdfTerms}{SPARQL 1.1 RDF term functions}}
+For nested shape constraints, this translation relies on combining triple-pattern matching with these SPARQL expressions.
+This is another aspect in which \ac{SGSC} is more expressive than HiBISCuS-type summaries: FedUP uses the term \texttt{"any"} when an object is a literal~\cite{aimonierdavat:hal-04538238}, whereas an \ac{SGSC} can encode substantially more precise object-level conditions.
+
+
+
+\subsection{Shape-Aware Source Selection}\label{sec:sass}
+We call our approach \emph{\ac{SASS}}: a result-aware source-selection procedure that operates over an \ac{SGSC} rather than a plain HiBISCuS-type summary.
+To position SASS with respect to prior work, we first restate the Result-Aware source-selection procedure used in FedUP.
+\Cref{alg:fedup-result-aware} is reproduced from FedUP (Algorithm 1)~\cite{aimonierdavat:hal-04538238}.
+
+\begin{algorithm}
+  \caption{Result-Aware source-selection procedure reproduced from FedUP (Algorithm 1)~\cite{aimonierdavat:hal-04538238}.}\label{alg:fedup-result-aware}
+  \begin{algorithmic}[1]
+    \Function{A}{$Q, F$}
+      \State \Return $\fmu(A'(Q, F))$
+    \EndFunction
+    \Function{$A'$}{$Q, F$}
+      \State $\Phi_o \gets \emptyset$
+      \If{$Q$ is a triple pattern $\mathrm{tp}$}
+        \State $\Phi_o \gets \Phi_o \cup \{\freq_{\mathrm{tp}}^{f} \mid f \in F\}$
+      \ElsIf{$Q$ is $(P_1 \Join P_2)$}
+        \State $\Phi_1, \Phi_2 \gets A'(P_1, F), A'(P_2, F)$
+        \State $\Phi_o \gets \Phi_o \cup \{\fmj(\{\varphi_1, \varphi_2\}) \mid \varphi_1 \in \Phi_1 \land \varphi_2 \in \Phi_2\}$
+      \ElsIf{$Q$ is $(P_1 \cup P_2)$}
+        \State $\Phi_1, \Phi_2 \gets A'(P_1, F), A'(P_2, F)$
+        \State $\Phi_o \gets \Phi_o \cup \{\varphi \mid \varphi \in \Phi_1 \lor \varphi \in \Phi_2\}$
+      \ElsIf{$Q$ is $(P_1 \leftouterjoin P_2)$}
+        \State $\Phi_1, \Phi_2 \gets A'(P_1, F), A'(P_2, F)$
+        \For{$\varphi_1 \in \Phi_1$}
+          \State $\Phi_{\mathrm{join}}^{\varphi_1} \gets \{\varphi_2 \mid \varphi_2 \in \Phi_2 \land \sols(\fmj(\{\varphi_1, \varphi_2\})) \neq \emptyset\}$
+          \If{$\Phi_{\mathrm{join}}^{\varphi_1} = \emptyset$}
+            \State $\Phi_o \gets \Phi_o \cup \{\varphi_1\}$
+          \Else
+            \State $\Phi_o \gets \Phi_o \cup \{\fleftjoin(\varphi_1, \fmu(\Phi_{\mathrm{join}}^{\varphi_1}))\}$
+          \EndIf
+        \EndFor
+      \ElsIf{$Q$ is $(P \text{ FILTER } R)$}
+        \State $\Phi \gets A'(P, F)$
+        \State $\Phi_o \gets \Phi_o \cup \{\ffilter_{R}(\varphi) \mid \varphi \in \Phi\}$
+      \EndIf
+      \State \Return $\{\varphi \mid \varphi \in \Phi_o \land \sols(\varphi) \neq \emptyset\}$
+    \EndFunction
+  \end{algorithmic}
+\end{algorithm}
+% I could calculate the time complexity of the algorithm
+
+The $\sols(\varphi)$ function evaluates query plan $\varphi$ against a HiBISCuS-type summary,
+returning the bag of results it produces.
+The goal of the result-aware source-selection algorithm is to generate an exhaustive set of
+relevant query plans and to evaluate each plan over the summary to determine which federation
+members cannot produce results for it.
+
+We propose to replace $\sols(\varphi)$ with $\sols_{\mathrm{SGSC}}(\varphi)$ throughout this algorithm.
+This modification is necessary because our proposed summary is not a \ac{KG}; it is an
+exclusive union of \ac{SGSC} branches, each paired with a shape constraint.
+
+\Cref{alg:sols-sgsc} presents $\sols_{\mathrm{SGSC}}(\varphi)$.
+The idea is to iterate over every branch of the exclusive union in $S$ and check whether that
+branch alone can answer the query derived from $\varphi$.
+For this purpose, we extend the signature of $\sols$ to $\sols(\varphi, S)$, where $S$ is the set of
+\ac{KG} instances over which the query is evaluated.
+The helper function $\mathrm{constraint}$ collects all \texttt{FILTER} expressions from the query plan into
+a single conjunctive expression; it also rewrites each ground term (IRI or literal) in a triple
+pattern into a fresh variable and adds an equality filter between that variable and the original term.
+
+In \cref{alg:sols-sgsc}, the condition $r_{\mathrm{bag}} \neq \emptyset \land C \land k$ has two purposes.
+First, $r_{\mathrm{bag}} \neq \emptyset$ confirms that evaluating $\varphi$ against branch $\mathrm{kg}$ yields at
+least one result on the summary.
+Second, the conjunct $C \land k$ checks whether the shape constraints $C$ of the branch are
+satisfiable together with the filter expression $k$ derived from $\varphi$.
+A branch that fails this satisfiability check is pruned: even if it produces results on the
+summary, those results cannot satisfy the query's filter constraints given the shape of the data.
+
+\begin{algorithm}
+  \caption{$\sols_{\mathrm{SGSC}}(\varphi, S)$ determines whether a query plan $\varphi$ can be answered by any member of the federation.}\label{alg:sols-sgsc}
+  \begin{algorithmic}[1]
+    \Function{$\sols_{\mathrm{SGSC}}$}{$\varphi, S$}
+      \For{$\mathrm{kg} \mapsto C \in S$}
+        \State $r_{\mathrm{bag}} \gets \sols(\varphi, \mathrm{kg})$
+        \State $k \gets \mathrm{constraint}(\varphi)$
+        \If{$r_{\mathrm{bag}} \neq \emptyset \land C \land k$}
+          \State \Return $r_{\mathrm{bag}}$
+        \EndIf
+      \EndFor
+      \State \Return $\emptyset$
+    \EndFunction
+  \end{algorithmic}
+\end{algorithm}
+
+% time complexity here too
+\paragraph{Soundness}
+\ac{SASS} preserves the soundness guarantee of FedUP~\cite{aimonierdavat:hal-04538238}:
+if $\sols_{\mathrm{SGSC}}(\varphi, S) = \emptyset$, then no member of the
+federation can produce a non-empty result for $\varphi$.
+This follows from the \ac{SGSC} definition: by construction, every endpoint's data
+conforms to at least one branch $\mathrm{kg} \to C$ in $S$.
+If every branch fails the condition $r_{\mathrm{bag}} \neq \emptyset \land C \land k$, then no conforming
+endpoint can satisfy both the structural requirements of $\varphi$ and its filter constraints,
+and the federation engine may safely prune this plan.
+
+% there is more to say here
