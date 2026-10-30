@@ -3,11 +3,13 @@
 We propose \emph{Shape-Guided Federation}, an approach that replaces the costly custom summaries
 used by HiBISCuS and FedUP with RDF data shapes, which are increasingly published alongside
 SPARQL endpoints and offer greater expressiveness at no additional construction cost.
-We first define our summary structure, the \ac{SGSC} (\cref{sec:sgsc}), then present
-\ac{SASS}, our shape-aware adaptation of FedUP's result-aware source-selection
-algorithm (\cref{sec:sass}).
+We first describe the content of the federation members with a shape index in \cref{sec:summaries},
+then present \ac{SASS}, our shape-aware adaptation of FedUP's result-aware source-selection
+algorithm, in \cref{sec:sass}.
+We then compare the expressiveness of shape indexes with the summaries of prior approaches in \cref{sec:expressiveness}.
+Finally, we discuss how shape indexes can be published by data providers or extracted by third parties to deploy Shape-Guided Federation in \cref{sec:deployment}.
 
-\subsection{Endpoint Summaries via RDF Data Shapes}\label{sec:sgsc}
+\subsection{Endpoint Summaries via RDF Data Shapes}\label{sec:summaries}
 
 The HiBISCuS algorithm~\cite{saleem2014hibiscus} proposes a summary approach, later refined by FedUP~\cite{aimonierdavat:hal-04538238}, to improve federated query performance.
 These summaries are \acp{KG} that, for each endpoint, characterize the predicates available for \ac{RDF} terms with respect to the endpoint's \emph{authority}\footnote{The authority as defined by the \href{https://datatracker.ietf.org/doc/html/rfc3986}{Uniform Resource Identifier (URI): Generic Syntax} specification.} in its \acp{IRI}.
@@ -16,7 +18,36 @@ We propose a different summarization approach, based on \ac{RDF} data shapes.
 At an abstract level, HiBISCuS-type summaries already capture structural regularities of endpoint data, and \ac{RDF} shape languages provide a standard mechanism to represent this structure.
 We therefore use \ac{RDF} data shapes to obtain a reusable and more expressive alternative to the custom summaries used by HiBISCuS and FedUP.
 
-To describe the content of each federation member, we reuse the \emph{shape index}~\cite{tam2025},
+Independently of the shape language, we abstract a shape using three definitions,
+first a target in \cref{def:target},
+then the triple constraints on the entities it selects in \cref{def:triple-constraint},
+and finally a shape in \cref{def:shape}.
+
+\begin{definition}[Target]\label{def:target}
+A target is a function $t : \mathcal{G} \to 2^{\mathcal{I}\mathcal{B}}$ that selects, from a \ac{KG}, the \acp{IRI} and blank nodes to be described, which we call \emph{entities}.
+\end{definition}
+
+\begin{definition}[Triple constraint]\label{def:triple-constraint}
+Let $t$ be a target.
+A triple constraint for $t$ is a triple $(p, C_O, r)$ constraining, in a \ac{KG} $G$, the triples $(x, p, o) \in G$ whose subject $x$ is in $t(G)$, where $p$ is a predicate,
+$C_O$ is either
+(i) a constraint on the value of the object of $p$, or
+(ii) a reference $@s'$ to a shape $s'$, requiring the object of $p$ to conform to $s'$,
+and $r \in \{\mathit{true}, \mathit{false}\}$ states whether $p$ is required.
+\end{definition}
+
+\begin{definition}[Shape]\label{def:shape}
+A shape is a pair $s = (t, \mathit{TC})$, where
+$t$ is a target as defined in \cref{def:target}, and
+$\mathit{TC} = \{A_1, \dots, A_k\}$ is a set of alternatives, each alternative $A_j$ being a set of triple constraints for $t$ as defined in \cref{def:triple-constraint}.
+Given a \ac{KG} $G$, a term $o$ satisfies $C_O$ if it satisfies the value constraint of kind~(i), or conforms to $s'$ when $C_O = @s'$.\footnote{Shapes can refer to each other cyclically, for instance a shape for persons whose \texttt{foaf:knows} objects are persons.}
+An entity $x \in t(G)$ satisfies a triple constraint $(p, C_O, r)$ if the object of every triple $(x, p, o) \in G$ satisfies $C_O$
+and, when $r = \mathit{true}$, $G$ contains at least one such triple.
+The entity $x$ conforms to $s$ if, for some alternative $A_j \in \mathit{TC}$, it satisfies every triple constraint of $A_j$
+and the object $o$ of every triple $(x, p, o) \in G$ satisfies $C_O$ for some $(p, C_O, r) \in A_j$.
+\end{definition}
+
+To describe the content of each federation member, we use a summary method called \emph{shape index}~\cite{tam2025},
 ``a mapping between \ac{RDF} document sets and \ac{RDF} data shapes that describes a subweb controlled by a data provider''~\cite{tam2025},
 where a subweb is ``a (sub)\ac{DKG} defined by the \ac{KG} derived from a set of \acp{IRI} controlled by a data provider''~\cite{tam2025}.
 A shape index is defined as
@@ -25,14 +56,46 @@ A shape index is defined as
   SI = \{ s_1 \mapsto \mathit{IRI}_1, s_2 \mapsto \mathit{IRI}_2, \dots, s_n \mapsto \mathit{IRI}_n \}
 \end{equation}
 
-where $s_i$ is a shape and $\mathit{IRI}_i$ is a set of \acp{IRI}, and it is \emph{complete} when every shape $s_i \in \mathrm{dom}(SI)$ is closed~\cite{tam2025}.
+where $s_i$ is a shape and $\mathit{IRI}_i = SI(s_i)$ is a set of \acp{IRI}, and it is \emph{complete} when every shape $s_i \in \mathrm{dom}(SI)$ is closed~\cite{tam2025}.
 
 In a federation, a subweb is a set of federation members, identified by the \acp{IRI} of their SPARQL endpoints.
-Each $\mathit{IRI}_i$ is thus the set of endpoint \acp{IRI} whose \ac{KG} contains entities conforming to $s_i$.
-In most cases, $\mathit{IRI}_i$ contains a single endpoint; it can however contain several, for instance when data following the same schema are partitioned over multiple endpoints and the constraints of $s_i$ do not distinguish the partitions.
+Each $\mathit{IRI}_i$ is thus the set of all endpoint \acp{IRI} whose \ac{KG} contains triples of an entity conforming to $s_i$.
+The mapping $s_i \mapsto \mathit{IRI}_i$ therefore states that the entities selected by the target of $s_i$, together with their triples constrained by the alternatives of $s_i$, are stored in the endpoints of $\mathit{IRI}_i$,
+whereas the objects of these triples that must conform to a shape $s'$ through a triple constraint of kind~(ii) \emph{can be described} by the endpoints of $SI(s')$.
+In most cases, $\mathit{IRI}_i$ contains a single endpoint.
+It can however contain several, for instance when data following the same schema are partitioned over multiple endpoints and the constraints of $s_i$ do not distinguish the partitions.
 
-Shape languages can express exclusive unions between sets of triple constraints.
-When a shape is closed, every entity conforming to it satisfies exactly one alternative of such a union and has no other predicate.
+We further require the shape index to describe every triple of the endpoints it maps.
+Let $\mathit{KG}(e)$ be the \ac{KG} of the endpoint identified by the \ac{IRI} $e$, and
+$G_{SI} = \bigcup_{e \in E_{SI}} \mathit{KG}(e)$, with $E_{SI} = \bigcup_{s_i \in \mathrm{dom}(SI)} \mathit{IRI}_i$,
+the \ac{KG} of the subweb described by $SI$.
+Conformance to the shapes of $SI$ is evaluated over $G_{SI}$,
+so an entity whose triples are stored in several endpoints conforms to a shape only if all its triples in the federation satisfy it.
+A triple $(x, p, o)$ is \emph{described} by a shape $s_i = (t_i, \mathit{TC}_i)$ if $x \in t_i(G_{SI})$, meaning that its subject is selected by $t_i$ over this subweb,
+and $s_i$ accepts the predicate $p$, meaning that $(p, C_O, r) \in A$ for some alternative $A \in \mathit{TC}_i$, some $C_O$, and some $r$.
+The shape index must satisfy
+\begin{equation}\label{eq:coverage}
+  \forall e \in E_{SI},\ \forall (x, p, o) \in \mathit{KG}(e),\ \exists s_i \in \mathrm{dom}(SI) :
+  e \in \mathit{IRI}_i \land (x, p, o) \text{ is described by } s_i.
+\end{equation}
+Shape languages also allow open shapes, which accept any predicate not forbidden by a negative constraint.
+Open shapes satisfy \cref{eq:coverage} trivially but describe little about the data.
+We therefore only consider closed shapes, as captured by \cref{def:shape}, and thus complete shape indexes.
+
+Closed shapes also determine where the triples of an entity are stored.
+Each data provider describes its own subweb,
+so an entity whose triples are split over the subwebs of several providers would require a closed shape over data that no single provider controls.
+We therefore assume \emph{entity locality}, meaning that the triples of an entity accepted by a shape are stored in the endpoints of that shape,
+\begin{equation}\label{eq:locality}
+  \forall s_i \in \mathrm{dom}(SI),\ \forall x \in t_i(G_{SI}) :
+  \{ (x, p, o) \in G_{SI} \mid s_i \text{ accepts } p \} \subseteq \bigcup_{e \in \mathit{IRI}_i} \mathit{KG}(e).
+\end{equation}
+The triples of an entity can thus be split over several endpoints of $\mathit{IRI}_i$,
+whereas the triples whose subject is an object of this entity conforming to a nested shape can be stored in the endpoints of other shapes.
+
+Shape languages can express exclusive unions between sets of triple constraints, which \cref{def:shape} captures with the alternatives of $\mathit{TC}$.
+By \cref{def:shape}, an entity conforming to a shape $s = (t, \mathit{TC})$ satisfies an alternative $A_j \in \mathit{TC}$,
+and each of its triples uses a predicate of a triple constraint of $A_j$.
 A shape index therefore describes not only which predicates occur in an endpoint, but also which combinations of predicates a single entity can have.
 
 \lstinputlisting[caption={ShEx example with an exclusive choice of user name representation.},label={lst:user-alt}]{code/user_alt.shex}
@@ -45,35 +108,143 @@ It describes users that must have a \texttt{foaf:mbox} and either:
 \end{itemize}
 
 Since \texttt{ex:UserShape} is closed, a user conforming to it follows exactly one of these alternatives.
-Hence, if \texttt{ex:UserShape} is mapped to an endpoint in a shape index, the index describes that no user of this endpoint has both a \texttt{foaf:name} and a \texttt{foaf:givenName}.
-Different users may nevertheless follow different alternatives, so the endpoint can contain users of both kinds.
+Hence, if \texttt{ex:UserShape} is mapped to a set of endpoint \acp{IRI} in a shape index, the index describes that no user stored in these endpoints has both a \texttt{foaf:name} and a \texttt{foaf:givenName}.
+Different users may nevertheless follow different alternatives, so the endpoints can contain users of both kinds.
 
-Beyond the combinations of predicates that an entity can have, \ac{RDF} data shapes also constrain the objects of these predicates.
-We capture these conditions with triple constraints.
+Beyond the combinations of predicates that an entity can have, triple constraints also describe the objects of these predicates,
+either by constraining their value, kind~(i), or by requiring them to conform to another shape, kind~(ii).
 
-\begin{definition}[Triple constraint]\label{def:triple-constraint}
-Let $s$ be a shape whose target selects the entities described by $s$.
-A triple constraint of $s$ is a pair $(p, C_O)$, where $p$ is a predicate and
-$C_O$ is either
-(i) a constraint on the value of the object of $p$, or
-(ii) a reference $@s'$ to a shape $s'$, requiring the object of $p$ to conform to $s'$.
-\end{definition}
+
 
 \lstinputlisting[caption={ShEx example using object constraint.},label={lst:shex-object-constraint}]{code/object_constraint.shex}
 
 For instance, in \cref{lst:shex-object-constraint}, the triple constraints
-\texttt{(rdf:type, [foaf:Person foaf:User])}, \texttt{(foaf:name, LITERAL)}, and
-\texttt{(foaf:mbox, IRI)} of \texttt{ex:UserShape}, and
-\texttt{(foaf:name, xsd:string)} of \texttt{ex:Hobby}, are of kind~(i),
-as they constrain the value of the object:
-users are of type \texttt{foaf:Person} or \texttt{foaf:User}, their name is a literal, their mailbox is an \ac{IRI}, and hobbies have a name of type \texttt{xsd:string}.
-In contrast, \texttt{(ex:hobby, @ex:Hobby)} is of kind~(ii),
+\texttt{(rdf:type, [foaf:Person foaf:User], true)}, \texttt{(foaf:name, LITERAL, true)}, and
+\texttt{(foaf:mbox, IRI, false)} of \texttt{ex:UserShape}, and
+\texttt{(foaf:name, xsd:string, true)} of \texttt{ex:Hobby}, are of kind~(i),
+as they constrain the value of the object,
+meaning that users are of type \texttt{foaf:Person} or \texttt{foaf:User}, their name is a literal, their mailbox is an \ac{IRI}, and hobbies have a name of type \texttt{xsd:string}.
+In contrast, \texttt{(ex:hobby, @ex:Hobby, true)} is of kind~(ii),
 as it requires the object of \texttt{ex:hobby} to conform to \texttt{ex:Hobby}.
-Mapped to an endpoint in a shape index, these triple constraints thus describe not only the predicates of the users of this endpoint, but also their objects.
+All these triple constraints are required, except \texttt{(foaf:mbox, IRI, false)},
+since the \texttt{?} of \cref{lst:shex-object-constraint} makes the mailbox optional,
+so a user may have no mailbox, but any mailbox it has is an \ac{IRI}.
+Mapped to a set of endpoint \acp{IRI} in a shape index, these triple constraints thus describe not only the predicates of the users stored in these endpoints, but also their objects.
+
+By describing the objects of the triples, triple constraints also describe which endpoints can share terms,
+since the object of a triple stored in one endpoint can occur, as a subject, predicate, or object, in the triples stored in another endpoint.
+We capture this with the notion of link.
+
+\begin{definition}[Link]\label{def:link}
+Let $SI$ be a shape index and $(p, C_O, r)$ a triple constraint of a shape $s_i \in \mathrm{dom}(SI)$.
+The triple constraint $(p, C_O, r)$ is \emph{compatible} with a shape $s_k = (t_k, \mathit{TC}_k) \in \mathrm{dom}(SI)$
+if there exist a \ac{KG} $G$ in which every triple is described by a shape of $SI$ and a term $o$ satisfying $C_O$
+such that $o$ occurs in a triple of $G$ described by $s_k$,
+either as its subject, with $o \in t_k(G)$,
+as its predicate, with $(o, C, r') \in A$ for some $A \in \mathit{TC}_k$,
+or as its object, with $o$ satisfying $C$ for some $(q, C, r') \in A$ and $A \in \mathit{TC}_k$.
+The endpoints linked by $(p, C_O, r)$ are
+$\mathit{link}(p, C_O, r) = \bigcup \{ SI(s_k) \mid s_k \in \mathrm{dom}(SI) \text{ compatible with } (p, C_O, r) \}$.
+\end{definition}
+
+For instance, let $s_u$ and $s_h$ be the shapes \texttt{ex:UserShape} and \texttt{ex:Hobby} of \cref{lst:shex-object-constraint}.
+The triple constraint \texttt{(ex:hobby, @ex:Hobby, true)} of $s_u$ is compatible with $s_h$ as a subject,
+so the endpoints of the users are linked to the endpoints $SI(s_h)$ of the hobbies.
+The triple constraint \texttt{(rdf:type, [foaf:Person foaf:User], true)} is compatible only with shapes in which \texttt{foaf:Person} or \texttt{foaf:User} can occur,
+for instance as the object of another \texttt{rdf:type} constraint.
+In contrast, \texttt{(foaf:mbox, IRI, false)} is compatible with every shape in which an \ac{IRI} can occur,
+and \texttt{(foaf:name, LITERAL, true)} only with shapes having an object constraint satisfied by a literal, since a literal can be neither a subject nor a predicate.
 
 
 
 \subsection{Shape-Aware Source Selection}\label{sec:sass}
+
+\begin{figure}[t]
+  \centering
+  \lstset{basicstyle=\ttfamily\footnotesize, aboveskip=2pt, belowskip=2pt}
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering\textbf{Shapes}
+  \end{minipage}\hfill
+  \begin{minipage}[t]{0.48\textwidth}
+    \centering\textbf{Coarse summaries}
+  \end{minipage}
+
+  \begin{minipage}[t]{0.48\textwidth}
+    \lstinputlisting[firstline=1, lastline=8]{code/example_shapes.shex}
+  \end{minipage}\hfill
+  \begin{minipage}[t]{0.48\textwidth}
+    \lstinputlisting{code/example_summary_user.ttl}
+  \end{minipage}
+
+  \begin{minipage}[t]{0.48\textwidth}
+    \lstinputlisting[firstline=9, lastline=12]{code/example_shapes.shex}
+  \end{minipage}\hfill
+  \begin{minipage}[t]{0.48\textwidth}
+    \lstinputlisting{code/example_summary_hobby.ttl}
+  \end{minipage}
+
+  \begin{minipage}[t]{0.48\textwidth}
+    \lstinputlisting[firstline=13, lastline=16]{code/example_shapes.shex}
+  \end{minipage}\hfill
+  \begin{minipage}[t]{0.48\textwidth}
+    \lstinputlisting{code/example_summary_club.ttl}
+  \end{minipage}
+
+  \medskip
+  \textbf{Refined summary of \texttt{ex:UserShape}}
+
+  \begin{minipage}[t]{0.48\textwidth}
+    \lstinputlisting[firstline=1, lastline=4]{code/example_summary_user_refined.ttl}
+  \end{minipage}\hfill
+  \begin{minipage}[t]{0.48\textwidth}
+    \lstinputlisting[firstline=6, lastline=10]{code/example_summary_user_refined.ttl}
+  \end{minipage}
+  \caption{Running example of a federation of two endpoints, and its summaries.
+  Prefixes are omitted.}
+  \label{fig:running-example}
+\end{figure}
+
+\Cref{fig:running-example} presents a federation of two endpoints that we use as a running example,
+described by the shape index of \cref{lst:running-example-si},
+meaning that $e_1$ stores users and $e_2$ stores hobbies and clubs.
+
+\lstinputlisting[caption={Shape index of the running example of \cref{fig:running-example}, serialized with the shape index vocabulary~\cite{tam2025}. Prefixes are omitted.},label={lst:running-example-si},basicstyle=\ttfamily\footnotesize]{code/example_shape_index.ttl}
+
+The summaries of the shapes are \acp{KG} sharing the \acp{IRI} of the shapes,
+so the object \texttt{ex:HobbyShape} of \texttt{ex:hobby} in the summary of \texttt{ex:UserShape} is the subject of the summary of \texttt{ex:HobbyShape},
+and the object \texttt{ex:UserShape} of \texttt{ex:member} in the summary of \texttt{ex:ClubShape} is the subject of the summary of \texttt{ex:UserShape}.
+The objects constrained by value are replaced by identifiers \texttt{ex:l1} to \texttt{ex:l5}, each standing for the constraint of its triple constraint,
+except the values listed by \texttt{ex:category}, which are kept.
+In the refined summary, each alternative of \texttt{ex:UserShape} has its own node,
+so no node has both a \texttt{foaf:name} and a \texttt{foaf:familyName},
+and the object of \texttt{ex:member} becomes both \texttt{ex:UserShape\_alt1} and \texttt{ex:UserShape\_alt2}.
+
+\begin{definition}[Summary of a shape index]\label{def:summary}
+Let $SI$ be a shape index.
+Each shape $s_i = (t_i, \mathit{TC}_i) \in \mathrm{dom}(SI)$ has a set of nodes $N_i \subseteq \mathcal{I}$,
+which is $N_i = \{ s_i \}$ in the \emph{coarse} summary.
+In the \emph{refined} summary, $N_i = \{ s_i \}$ if $\mathit{TC}_i$ has a single alternative,
+and $N_i = \{ n_{i,j} \mid A_j \in \mathit{TC}_i \}$, with one fresh \ac{IRI} per alternative, otherwise.
+Each triple constraint $\tau = (p, C_O, r)$ of $SI$ has a fresh \ac{IRI} $\iota_\tau$, called its identifier.
+The summary of $SI$ maps each shape to a \ac{KG},
+$\Psi(SI) = \{ s_i \mapsto S_i \mid s_i \in \mathrm{dom}(SI) \}$,
+where $S_i$ contains a triple $(n, p, o)$ for every node $n \in N_i$,
+every triple constraint $\tau = (p, C_O, r)$ of an alternative of $n$,
+and every $o \in \mathit{obj}(\tau)$, with $\mathit{obj}(\tau)$ being
+(i) $N_k$ when $C_O = @s_k$,
+(ii) the listed terms when $C_O$ lists the allowed values, and
+(iii) $\{ \iota_\tau \}$ otherwise.
+\end{definition}
+
+Each term of a summary stands for a set of terms of the federation, called its \emph{extension}.
+The extension of a node $n \in N_i$ is the set of entities conforming to $s_i$, or to the alternative of $n$ in the refined summary,
+the extension of an identifier $\iota_\tau$ is the set of terms satisfying the $C_O$ of $\tau$,
+and the extension of a listed term is the term itself.
+Two terms of the summaries \emph{match} if their extensions can intersect over a \ac{KG} in which every triple is described by a shape of $SI$, as in \cref{def:link}, which a solver decides from the shapes.
+In particular, two nodes match if an entity can conform to both, which requires each to accept the predicates the other requires.
+For instance, \texttt{ex:l1} and \texttt{ex:l5} match, since a literal of type \texttt{xsd:string} satisfies both \texttt{LITERAL} and \texttt{xsd:string},
+whereas \texttt{ex:l4} and \texttt{"game"} do not, since \texttt{"game"} is not an integer,
+and \texttt{ex:UserShape} and \texttt{ex:ClubShape} do not, since a club has an \texttt{ex:practices} that the closed shape of users does not accept.
 % TODO use for the filter check:
 % Such constraints can be expressed in SPARQL by using functions such as \texttt{isIRI} and \texttt{datatype}, or by additional triple patterns ensuring that the object satisfies another shape.%
 % \footnote{\href{https://www.w3.org/TR/sparql11-query/\#func-rdfTerms}{SPARQL 1.1 RDF term functions}}
@@ -178,3 +349,5 @@ and the federation engine may safely prune this plan.
 \subsection{Expressiveness compared to other approaches}\label{sec:expressiveness}
 
 %This is another aspect in which \ac{SGSC} is more expressive than HiBISCuS-type summaries: FedUP uses the term \texttt{"any"} when an object is a literal~\cite{aimonierdavat:hal-04538238}, whereas an \ac{SGSC} can encode substantially more precise object-level conditions.
+
+\subsection{Deploying Shape-Guided Federation}\label{sec:deployment}

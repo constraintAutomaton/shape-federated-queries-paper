@@ -1,0 +1,7 @@
+ex:chess
+    foaf:name "chess" ;
+    ex:category "game" .
+
+ex:chessClub
+    ex:practices ex:chess ;
+    ex:member ex:alice, ex:bob .

@@ -1,0 +1,9 @@
+ex:alice
+    foaf:name "Alice" ;
+    foaf:age 34 ;
+    ex:hobby ex:chess .
+
+ex:bob
+    foaf:givenName "Bob" ;
+    foaf:familyName "Smith" ;
+    ex:hobby ex:chess .

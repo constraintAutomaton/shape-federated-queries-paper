@@ -1,6 +1,22 @@
 \section{Foundation}
 
-This section introduces the query-plan notation used in the remainder of the paper.
+This section introduces the \ac{RDF} and SPARQL notation, then the FedQPL query-plan notation used in the remainder of the paper.
+
+\subsection{RDF and SPARQL}
+
+We consider SPARQL~\cite{w3SPARQLQuery} queries over \ac{RDF} \acp{KG}.
+Let $\mathcal{I}$, $\mathcal{B}$, $\mathcal{L}$, and $\mathcal{V}$ denote the pairwise disjoint sets of all \acp{IRI}, blank nodes, literals, and variables, respectively.
+We abbreviate the union of such sets by juxtaposing their symbols, so that $\mathcal{I}\mathcal{B}$ stands for $\mathcal{I} \cup \mathcal{B}$.
+
+\begin{definition}[Triple]\label{def:triple}
+An \ac{RDF} triple is a tuple $(s, p, o) \in \mathcal{I}\mathcal{B} \times \mathcal{I} \times \mathcal{I}\mathcal{B}\mathcal{L}$,
+whose components are called its subject, predicate, and object.
+An \ac{RDF} \ac{KG} is a finite set of triples, and $\mathcal{G}$ denotes the set of all \ac{RDF} \acp{KG}.
+\end{definition}
+
+\begin{definition}[Triple pattern]\label{def:triple-pattern}
+A triple pattern is a tuple $(s, p, o) \in \mathcal{I}\mathcal{B}\mathcal{V} \times \mathcal{I}\mathcal{V} \times \mathcal{I}\mathcal{B}\mathcal{L}\mathcal{V}$.
+\end{definition}
 
 \subsection{FedQPL}
 

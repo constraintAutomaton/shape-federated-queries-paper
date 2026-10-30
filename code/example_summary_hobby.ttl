@@ -1,0 +1,3 @@
+ex:HobbyShape
+    foaf:name ex:l5 ;
+    ex:category "sport", "game" .

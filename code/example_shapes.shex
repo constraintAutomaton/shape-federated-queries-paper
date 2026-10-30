@@ -1,0 +1,16 @@
+ex:UserShape CLOSED {
+  ( foaf:name LITERAL
+  | foaf:givenName xsd:string ;
+    foaf:familyName xsd:string ) ;
+  foaf:age xsd:integer
+    MAXINCLUSIVE 150 ? ;
+  ex:hobby @ex:HobbyShape *
+}
+ex:HobbyShape CLOSED {
+  foaf:name xsd:string ;
+  ex:category ["sport" "game"]
+}
+ex:ClubShape CLOSED {
+  ex:practices @ex:HobbyShape ;
+  ex:member @ex:UserShape *
+}

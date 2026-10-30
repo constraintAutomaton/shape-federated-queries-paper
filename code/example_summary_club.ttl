@@ -1,0 +1,3 @@
+ex:ClubShape
+    ex:practices ex:HobbyShape ;
+    ex:member ex:UserShape .

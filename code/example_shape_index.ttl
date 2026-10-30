@@ -1,0 +1,5 @@
+ex:shapeIndex
+    a si:ShapeIndex ;
+    si:entry [ a si:Entry ; si:shape ex:UserShape ; si:subweb ex:e1 ] ;
+    si:entry [ a si:Entry ; si:shape ex:HobbyShape ; si:subweb ex:e2 ] ;
+    si:entry [ a si:Entry ; si:shape ex:ClubShape ; si:subweb ex:e2 ] .

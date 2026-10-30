@@ -1,0 +1,6 @@
+ex:UserShape
+    foaf:name ex:l1 ;
+    foaf:givenName ex:l2 ;
+    foaf:familyName ex:l3 ;
+    foaf:age ex:l4 ;
+    ex:hobby ex:HobbyShape .
