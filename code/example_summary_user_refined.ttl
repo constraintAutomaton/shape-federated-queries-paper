@@ -1,9 +1,9 @@
-ex:UserShape_alt1
+ex:UserShape
     foaf:name ex:l1 ;
     foaf:age ex:l4 ;
     ex:hobby ex:HobbyShape .
 
-ex:UserShape_alt2
+ex:UserShape
     foaf:givenName ex:l2 ;
     foaf:familyName ex:l3 ;
     foaf:age ex:l4 ;

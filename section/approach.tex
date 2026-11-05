@@ -166,7 +166,7 @@ and \texttt{(foaf:name, LITERAL, true)} only with shapes having an object constr
     \centering\textbf{Shapes}
   \end{minipage}\hfill
   \begin{minipage}[t]{0.48\textwidth}
-    \centering\textbf{Coarse summaries}
+    \centering\textbf{Coarse \acsp{LCG}}
   \end{minipage}
 
   \begin{minipage}[t]{0.48\textwidth}
@@ -191,7 +191,7 @@ and \texttt{(foaf:name, LITERAL, true)} only with shapes having an object constr
   \end{minipage}
 
   \medskip
-  \textbf{Refined summary of \texttt{ex:UserShape}}
+  \textbf{Refined \acsp{LCG} of \texttt{ex:UserShape}}
 
   \begin{minipage}[t]{0.48\textwidth}
     \lstinputlisting[firstline=1, lastline=4]{code/example_summary_user_refined.ttl}
@@ -199,56 +199,88 @@ and \texttt{(foaf:name, LITERAL, true)} only with shapes having an object constr
   \begin{minipage}[t]{0.48\textwidth}
     \lstinputlisting[firstline=6, lastline=10]{code/example_summary_user_refined.ttl}
   \end{minipage}
-  \caption{Running example of a federation of two endpoints, and its summaries.
+  \caption{Shapes of the running example and their coarse and refined \acsp{LCG}.
   Prefixes are omitted.}
   \label{fig:running-example}
 \end{figure}
 
-\Cref{fig:running-example} presents a federation of two endpoints that we use as a running example,
-described by the shape index of \cref{lst:running-example-si},
-meaning that $e_1$ stores users and $e_2$ stores hobbies and clubs.
+\Cref{fig:running-example} presents the shapes of a running example and their \acsp{LCG},
+for a federation of two endpoints described by the shape index of \cref{lst:running-example-si},
+so $e_1$ stores the users and $e_2$ stores the hobbies and clubs.
 
 \lstinputlisting[caption={Shape index of the running example of \cref{fig:running-example}, serialized with the shape index vocabulary~\cite{tam2025}. Prefixes are omitted.},label={lst:running-example-si},basicstyle=\ttfamily\footnotesize]{code/example_shape_index.ttl}
 
-The summaries of the shapes are \acp{KG} sharing the \acp{IRI} of the shapes,
-so the object \texttt{ex:HobbyShape} of \texttt{ex:hobby} in the summary of \texttt{ex:UserShape} is the subject of the summary of \texttt{ex:HobbyShape},
-and the object \texttt{ex:UserShape} of \texttt{ex:member} in the summary of \texttt{ex:ClubShape} is the subject of the summary of \texttt{ex:UserShape}.
-The objects constrained by value are replaced by identifiers \texttt{ex:l1} to \texttt{ex:l5}, each standing for the constraint of its triple constraint,
-except the values listed by \texttt{ex:category}, which are kept.
-In the refined summary, each alternative of \texttt{ex:UserShape} has its own node,
-so no node has both a \texttt{foaf:name} and a \texttt{foaf:familyName},
-and the object of \texttt{ex:member} becomes both \texttt{ex:UserShape\_alt1} and \texttt{ex:UserShape\_alt2}.
+We describe each endpoint with the shapes it stores,
+translated into \acp{LCG}, which are small \acp{KG} that can be queried like data.
+Each shape becomes a \ac{KG} whose only subject is the \ac{IRI} of the shape,
+with the triples of its triple constraints, as for \texttt{ex:UserShape} in \cref{fig:running-example}.
+The object of such a triple depends on the constraint on the object.
+A reference to another shape becomes the \ac{IRI} of that shape,
+which is the subject of its own \ac{KG}, so that the \acp{KG} are connected like the data they describe.
+Allowed values are kept as they are,
+and any other constraint becomes a fresh \ac{IRI}, such as \texttt{ex:l1}, standing for the terms satisfying it.
+Each \ac{KG} comes with constraints, recording what its \acp{IRI} stand for,
+and with links, recording which endpoints can share the objects of its triples.
+A shape with several alternatives can either be translated into a single \ac{KG}, in the \emph{coarse} \acsp{LCG},
+or into one \ac{KG} per alternative, in the \emph{refined} \acsp{LCG},
+as shown for \texttt{ex:UserShape} in \cref{fig:running-example}.
 
-\begin{definition}[Summary of a shape index]\label{def:summary}
+\begin{definition}[\aclp{LCG} of a shape index]\label{def:summary}
 Let $SI$ be a shape index.
-Each shape $s_i = (t_i, \mathit{TC}_i) \in \mathrm{dom}(SI)$ has a set of nodes $N_i \subseteq \mathcal{I}$,
-which is $N_i = \{ s_i \}$ in the \emph{coarse} summary.
-In the \emph{refined} summary, $N_i = \{ s_i \}$ if $\mathit{TC}_i$ has a single alternative,
-and $N_i = \{ n_{i,j} \mid A_j \in \mathit{TC}_i \}$, with one fresh \ac{IRI} per alternative, otherwise.
-Each triple constraint $\tau = (p, C_O, r)$ of $SI$ has a fresh \ac{IRI} $\iota_\tau$, called its identifier.
-The summary of $SI$ maps each shape to a \ac{KG},
-$\Psi(SI) = \{ s_i \mapsto S_i \mid s_i \in \mathrm{dom}(SI) \}$,
-where $S_i$ contains a triple $(n, p, o)$ for every node $n \in N_i$,
-every triple constraint $\tau = (p, C_O, r)$ of an alternative of $n$,
-and every $o \in \mathit{obj}(\tau)$, with $\mathit{obj}(\tau)$ being
-(i) $N_k$ when $C_O = @s_k$,
-(ii) the listed terms when $C_O$ lists the allowed values, and
-(iii) $\{ \iota_\tau \}$ otherwise.
+Each triple constraint $\tau = (p, C_O, r)$ of a shape of $SI$ has a set of objects $\mathit{obj}(\tau)$, which is
+(i) $\{ s_k \}$ when $C_O = @s_k$ with $s_k \in \mathrm{dom}(SI)$,
+(ii) the listed values when $C_O$ lists the allowed values, and
+(iii) $\{ \iota_\tau \}$ otherwise, where $\iota_\tau$ is a fresh \ac{IRI} called the \emph{identifier} of $\tau$.
+The constraint of $\iota_\tau$ is $c_\tau = s_k$ when $C_O = @s_k$, and $c_\tau = C_O$ otherwise.
+For a shape $s_i = (t_i, \mathit{TC}_i) \in \mathrm{dom}(SI)$ and a set of alternatives $\mathcal{A} \subseteq \mathit{TC}_i$,
+the \ac{LCG} $\pi(s_i, \mathcal{A}) = (S, C, L)$ consists of the \ac{KG}
+$S = \{ (s_i, p, o) \mid A \in \mathcal{A},\ \tau = (p, C_O, r) \in A,\ o \in \mathit{obj}(\tau) \}$,
+the constraints
+$C = \{ s_i \mapsto (t_i, \mathcal{A}) \} \cup \{ \iota_\tau \mapsto c_\tau \mid A \in \mathcal{A},\ \tau \in A,\ \mathit{obj}(\tau) = \{ \iota_\tau \} \}$,
+and the links
+$L = \{ (s_i, p, o) \mapsto \mathit{link}(\tau) \mid A \in \mathcal{A},\ \tau = (p, C_O, r) \in A,\ o \in \mathit{obj}(\tau) \}$
+mapping each triple to the endpoints linked by its triple constraint, as in \cref{def:link}.
+A shape is converted into $\sigma(s_i) = \{ \pi(s_i, \mathit{TC}_i) \}$ in the \emph{coarse} \acsp{LCG},
+and into $\sigma(s_i) = \{ \pi(s_i, \{ A_j \}) \mid A_j \in \mathit{TC}_i \}$ in the \emph{refined} \acsp{LCG}.
+The \acp{LCG} of $SI$ map each endpoint to the \acp{LCG} of the shapes it stores,
+$\Psi(SI) = \{ e \mapsto \bigcup \{ \sigma(s_i) \mid s_i \in \mathrm{dom}(SI) \land e \in SI(s_i) \} \mid e \in E_{SI} \}$.
 \end{definition}
 
-Each term of a summary stands for a set of terms of the federation, called its \emph{extension}.
-The extension of a node $n \in N_i$ is the set of entities conforming to $s_i$, or to the alternative of $n$ in the refined summary,
-the extension of an identifier $\iota_\tau$ is the set of terms satisfying the $C_O$ of $\tau$,
-and the extension of a listed term is the term itself.
-Two terms of the summaries \emph{match} if their extensions can intersect over a \ac{KG} in which every triple is described by a shape of $SI$, as in \cref{def:link}, which a solver decides from the shapes.
-In particular, two nodes match if an entity can conform to both, which requires each to accept the predicates the other requires.
-For instance, \texttt{ex:l1} and \texttt{ex:l5} match, since a literal of type \texttt{xsd:string} satisfies both \texttt{LITERAL} and \texttt{xsd:string},
-whereas \texttt{ex:l4} and \texttt{"game"} do not, since \texttt{"game"} is not an integer,
-and \texttt{ex:UserShape} and \texttt{ex:ClubShape} do not, since a club has an \texttt{ex:practices} that the closed shape of users does not accept.
+A reference $@s_k$ to a shape of $SI$ produces the \ac{IRI} $s_k$ as object, which is also the subject of the \acp{KG} of $s_k$,
+so the \acp{KG} of two linked shapes share a term even when the shapes are stored in different endpoints,
+and the links $L$ give the other endpoints that can share the objects of each triple.
+
+In the coarse \acsp{LCG} of \cref{fig:running-example}, $\sigma(\texttt{ex:UserShape})$ contains a single \ac{LCG},
+whose \ac{KG} has the subject \texttt{ex:UserShape},
+and whose constraints map \texttt{ex:l1} to \texttt{ex:l4} to \texttt{LITERAL}, \texttt{xsd:string}, \texttt{xsd:string}, and \texttt{xsd:integer} with a maximum of 150.
+Its links map the triple of \texttt{ex:hobby} to $\{e_2\}$, and the triple of \texttt{foaf:name} to $\{e_1, e_2\}$, since a name of a user can also be a name of a hobby.
+In the refined \acsp{LCG}, $\sigma(\texttt{ex:UserShape})$ contains one \ac{LCG} per alternative,
+whose \acp{KG} share the subject \texttt{ex:UserShape} and whose constraints map it to a different alternative.
+The identifier \texttt{ex:l4} occurs in both \acp{LCG}, since \texttt{foaf:age} is outside the alternatives.
+The \ac{KG} of \texttt{ex:HobbyShape} keeps the values \texttt{"sport"} and \texttt{"game"} of \texttt{ex:category}.
+$\Psi(SI)$ maps $e_1$ to the \acp{LCG} of \texttt{ex:UserShape}, and $e_2$ to the \acp{LCG} of \texttt{ex:HobbyShape} and \texttt{ex:ClubShape}.
+
+% TODO move to source selection
+% Each term of a summary stands for a set of terms of the federation, called its \emph{extension}.
+% The extension of a node $n \in N_i$ is the set of entities conforming to $s_i$, or to the alternative of $n$ in the refined summary,
+% the extension of an identifier $\iota_\tau$ is the set of terms satisfying the $C_O$ of $\tau$,
+% and the extension of a listed term is the term itself.
+% Two terms of the summaries \emph{match} if their extensions can intersect over a \ac{KG} in which every triple is described by a shape of $SI$, as in \cref{def:link}, which a solver decides from the shapes.
+% In particular, two nodes match if an entity can conform to both, which requires each to accept the predicates the other requires.
+% For instance, \texttt{ex:l1} and \texttt{ex:l5} match, since a literal of type \texttt{xsd:string} satisfies both \texttt{LITERAL} and \texttt{xsd:string},
+% whereas \texttt{ex:l4} and \texttt{"game"} do not, since \texttt{"game"} is not an integer,
+% and \texttt{ex:UserShape} and \texttt{ex:ClubShape} do not, since a club has an \texttt{ex:practices} that the closed shape of users does not accept.
+
+The refined \acsp{LCG} distinguish the alternatives of the shapes,
+at the cost of a number of \acsp{LCG} that grows with the number of alternatives.
+The coarse \acsp{LCG} can therefore be used alone when memory is limited or when the shapes have many alternatives,
+at the cost of possibly selecting more sources.
+More generally, the \acsp{LCG} could form several levels of refinement between the coarse and the refined \acsp{LCG}, which we leave for future work.
 % TODO use for the filter check:
 % Such constraints can be expressed in SPARQL by using functions such as \texttt{isIRI} and \texttt{datatype}, or by additional triple patterns ensuring that the object satisfies another shape.%
 % \footnote{\href{https://www.w3.org/TR/sparql11-query/\#func-rdfTerms}{SPARQL 1.1 RDF term functions}}
 % For nested shape constraints, this translation relies on combining triple-pattern matching with these SPARQL expressions.
+\iffalse
 We call our approach \emph{\ac{SASS}}: a result-aware source-selection procedure that operates over an \ac{SGSC} rather than a plain HiBISCuS-type summary.
 To position SASS with respect to prior work, we first restate the Result-Aware source-selection procedure used in FedUP.
 \Cref{alg:fedup-result-aware} is reproduced from FedUP (Algorithm 1)~\cite{aimonierdavat:hal-04538238}.
@@ -346,6 +378,7 @@ and the federation engine may safely prune this plan.
 % there is more to say here
 %
 %
+\fi
 \subsection{Expressiveness compared to other approaches}\label{sec:expressiveness}
 
 %This is another aspect in which \ac{SGSC} is more expressive than HiBISCuS-type summaries: FedUP uses the term \texttt{"any"} when an object is a literal~\cite{aimonierdavat:hal-04538238}, whereas an \ac{SGSC} can encode substantially more precise object-level conditions.

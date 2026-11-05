@@ -39,14 +39,14 @@ but as a reusable, standards-compliant artifact with utility well beyond federat
 In this paper, we propose \emph{Shape-Guided Federation}: an approach that replaces FedUP's custom summaries
 with RDF data shapes as the foundation for source selection in large-scale federated querying.
 Our approach is built on two contributions.
-First, we define the \emph{Set of Graph Summaries with Constraint} (SGSC),
-a summary structure that maps endpoint knowledge graphs to sets of shape-based constraints.
+First, we translate the shapes of a shape index into \acp{LCG},
+\acp{KG} paired with the constraints of the shapes and the links between endpoints.
 Second, we present \emph{Shape-Aware Source Selection} (SASS),
-an adaptation of FedUP's result-aware source-selection algorithm that operates over an SGSC rather than a custom summary.
-We show that SGSC is strictly more expressive than HiBISCuS-type summaries in two respects:
-it can represent exclusive disjunctions over predicate sets,
+an adaptation of FedUP's result-aware source-selection algorithm that operates over \acp{LCG} rather than a custom summary.
+We show that \acp{LCG} are strictly more expressive than HiBISCuS-type summaries in two respects:
+they can represent exclusive disjunctions over predicate sets,
 enabling the pruning of unsatisfiable joins,
-and it encodes precise object-level constraints.
+and they encode precise object-level constraints.
 
 The remainder of this paper is structured as follows.
 \Cref{sec:related} reviews related work on federated SPARQL querying and RDF data shapes.
