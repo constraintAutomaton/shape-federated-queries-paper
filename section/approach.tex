@@ -131,33 +131,104 @@ since the \texttt{?} of \cref{lst:shex-object-constraint} makes the mailbox opti
 so a user may have no mailbox, but any mailbox it has is an \ac{IRI}.
 Mapped to a set of endpoint \acp{IRI} in a shape index, these triple constraints thus describe not only the predicates of the users stored in these endpoints, but also their objects.
 
-By describing the objects of the triples, triple constraints also describe which endpoints can share terms,
-since the object of a triple stored in one endpoint can occur, as a subject, predicate, or object, in the triples stored in another endpoint.
-We capture this with the notion of link.
-
-\begin{definition}[Link]\label{def:link}
-Let $SI$ be a shape index and $(p, C_O, r)$ a triple constraint of a shape $s_i \in \mathrm{dom}(SI)$.
-The triple constraint $(p, C_O, r)$ is \emph{compatible} with a shape $s_k = (t_k, \mathit{TC}_k) \in \mathrm{dom}(SI)$
-if there exist a \ac{KG} $G$ in which every triple is described by a shape of $SI$ and a term $o$ satisfying $C_O$
-such that $o$ occurs in a triple of $G$ described by $s_k$,
-either as its subject, with $o \in t_k(G)$,
-as its predicate, with $(o, C, r') \in A$ for some $A \in \mathit{TC}_k$,
-or as its object, with $o$ satisfying $C$ for some $(q, C, r') \in A$ and $A \in \mathit{TC}_k$.
-The endpoints linked by $(p, C_O, r)$ are
-$\mathit{link}(p, C_O, r) = \bigcup \{ SI(s_k) \mid s_k \in \mathrm{dom}(SI) \text{ compatible with } (p, C_O, r) \}$.
-\end{definition}
-
-For instance, let $s_u$ and $s_h$ be the shapes \texttt{ex:UserShape} and \texttt{ex:Hobby} of \cref{lst:shex-object-constraint}.
-The triple constraint \texttt{(ex:hobby, @ex:Hobby, true)} of $s_u$ is compatible with $s_h$ as a subject,
-so the endpoints of the users are linked to the endpoints $SI(s_h)$ of the hobbies.
-The triple constraint \texttt{(rdf:type, [foaf:Person foaf:User], true)} is compatible only with shapes in which \texttt{foaf:Person} or \texttt{foaf:User} can occur,
-for instance as the object of another \texttt{rdf:type} constraint.
-In contrast, \texttt{(foaf:mbox, IRI, false)} is compatible with every shape in which an \ac{IRI} can occur,
-and \texttt{(foaf:name, LITERAL, true)} only with shapes having an object constraint satisfied by a literal, since a literal can be neither a subject nor a predicate.
-
 
 
 \subsection{Shape-Aware Source Selection}\label{sec:sass}
+
+This section presents our approach for shape-aware source selection.
+\Cref{fig:running-example} presents the shapes of a running example and their \acp{LCG},
+for a federation of two endpoints described by the shape index of \cref{lst:running-example-si},
+so $e_1$ stores the users and $e_2$ stores the hobbies and clubs.
+
+
+We describe each endpoint with the shapes it stores,
+translated into \acp{LCG}, which are small \acp{KG} with constraints.
+Each shape becomes an \ac{LCG} whose subject is the \ac{IRI} of the shape,
+with the triples of its triple constraints, as for \texttt{ex:UserShape} in \cref{fig:running-example}.
+The object of such a triple depends on the constraint on the object.
+A reference to another shape becomes the \ac{IRI} of that shape,
+which is the subject of its own \ac{LCG} when that shape is part of the shape index, so that the \acp{KG} are connected like the data they describe.
+Allowed values are kept as they are,
+and any other constraint becomes a fresh \ac{IRI}, such as \texttt{ex:l1}, standing for the terms satisfying it.
+A shape with several alternatives can either be translated into a single \ac{KG}, in the \emph{coarse} \acsp{LCG},
+or into one \ac{KG} per alternative, in the \emph{refined} \acsp{LCG},
+as shown for \texttt{ex:UserShape} in \cref{fig:running-example}.
+The coarse \ac{LCG} of a shape thus holds the union of the triples of all its alternatives.
+Since no alternative forbids the triples of another, each triple of this union can occur in the data,
+and only which triples occur together is lost from the \ac{KG}, while it remains in the constraints of the \ac{LCG}.\footnote{\Cref{def:shape} has no negation, so an alternative states which triples are allowed but never forbids a triple. Other criteria could build the coarse \acp{LCG}, as long as the \ac{LCG} of a set of alternatives remains looser than the \acp{LCG} of its subsets, accepting every triple they accept.}
+Each shape is identified by an \ac{IRI}, and we write $\mathit{sh}(n)$ for the shape identified by the \ac{IRI} $n$.
+% TODO encode the authorities of the entities of a shape in its IRI, so that constant IRIs in queries can be pruned as in FedUP (subject constants are currently always satisfiable, less precise than FedUP authorities)
+
+\begin{definition}[\aclp{LCG} of a shape index]\label{def:summary}
+Let $SI$ be a shape index.
+Each triple constraint $\tau = (p, C_O, r)$ of a shape of $SI$ has a set of objects $\mathit{obj}(\tau)$, since a list of allowed values gives several objects, which is
+(i) $\{ n_k \}$ when $C_O = @s_k$ with $s_k = \mathit{sh}(n_k) \in \mathrm{dom}(SI)$,
+(ii) the listed values when $C_O$ lists the allowed values, and
+(iii) $\{ \iota_{C_O} \}$ otherwise, where $\iota_{C_O}$ is a fresh \ac{IRI}, called the \emph{identifier} of $C_O$ and shared by every triple constraint with the same constraint $C_O$, that stands in the \ac{KG} for the terms satisfying $C_O$, while $C_O$ itself is kept outside the \ac{KG}, in the constraints of the \ac{LCG}.
+For an \ac{IRI} $n$ and a shape $s = (t, \mathit{TC})$,
+the \ac{LCG} $\pi(n, s) = (S, C)$ consists of the \ac{KG}
+$S = \{ (n, p, o) \mid A \in \mathit{TC},\ \tau = (p, C_O, r) \in A,\ o \in \mathit{obj}(\tau) \}$
+and the constraints
+$C = \{ n \mapsto s \} \cup \{ \iota_{C_O} \mapsto C_O \mid A \in \mathit{TC},\ \tau = (p, C_O, r) \in A,\ \mathit{obj}(\tau) = \{ \iota_{C_O} \} \}$.
+A shape $s_i = \mathit{sh}(n_i) = (t_i, \mathit{TC}_i)$ is converted into $\sigma(s_i) = \{ \pi(n_i, s_i) \}$ in the \emph{coarse} \acsp{LCG},
+and into $\sigma(s_i) = \{ \pi(n_i, (t_i, \{ A_j \})) \mid A_j \in \mathit{TC}_i \}$ in the \emph{refined} \acsp{LCG}.
+The \acp{LCG} of $SI$ map each endpoint to the \acp{LCG} of the shapes it stores,
+$\Psi(SI) = \{ e \mapsto \bigcup \{ \sigma(s_i) \mid s_i \in \mathrm{dom}(SI) \land e \in SI(s_i) \} \mid e \in E_{SI} \}$.
+\end{definition}
+
+A reference $@s_k$ to a shape of $SI$ produces the \ac{IRI} $n_k$ of $s_k$ as object, which is also the subject of the \acp{KG} of $s_k$,
+so the \acp{KG} of two linked \acp{LCG} share a term even when their shapes are stored in different endpoints.
+
+\begin{definition}[Link]\label{def:link}
+Two \acp{LCG} are \emph{linked} when an \ac{IRI} in the \ac{KG} of one is the subject of the \ac{KG} of the other.
+\end{definition}
+
+The \acp{LCG} of $SI$ thus form a graph that is connected like the data they describe.
+
+A reference is however not the only way for the object of a triple to be the subject of other triples,
+since a triple constraint such as \texttt{(foaf:knows, IRI, false)} only requires its object to be an \ac{IRI},
+while this \ac{IRI} can be the subject of triples described by another shape.
+Its identifier is then the subject of no \ac{LCG}, so a query joining this object with its own triples finds no result over the \acp{LCG}.
+We consider two interpretations of such constraints.
+In the first, we assume that an object constrained only to be an \ac{IRI} is never the subject of a triple described by a shape of $SI$,
+so that every join between shapes is stated by a reference.
+In the second, we drop this assumption and detect such joins with ASK queries,
+asking whether an object of $p$ in the endpoints of the shape is the subject of a triple described by another shape $s_k$ in the endpoints of $s_k$.
+When it is, the objects of the triple constraint also include $n_k$, as for a reference to $s_k$, which links the two \acp{LCG}.
+Since the object and its triples can be stored in different endpoints, such a query spans several endpoints,
+either as a federated ASK query with SERVICE clauses or by retrieving the objects of $p$ and asking the endpoints of $s_k$ about them,
+at a cost that grows with the number of objects of $p$.
+The answers of these queries thus modify the \acp{LCG} and can be materialized or cached, so that later queries reuse them without contacting the endpoints again.
+
+In the coarse \acsp{LCG} of \cref{fig:running-example}, with $s_u = \mathit{sh}(\texttt{ex:UserShape})$, $\sigma(s_u)$ contains a single \ac{LCG},
+whose \ac{KG} has the subject \texttt{ex:UserShape},
+and whose constraints map \texttt{ex:l1}, \texttt{ex:l2}, and \texttt{ex:l3} to \texttt{LITERAL}, \texttt{xsd:string}, and \texttt{xsd:integer} with a maximum of 150.
+In the refined \acsp{LCG}, $\sigma(s_u)$ contains one \ac{LCG} per alternative,
+whose \acp{KG} share the subject \texttt{ex:UserShape} and whose constraints map it to the shape restricted to a different alternative.
+The identifier \texttt{ex:l3} occurs in both \acp{LCG}, since \texttt{foaf:age} is outside the alternatives.
+The \ac{KG} of \texttt{ex:HobbyShape} keeps the values \texttt{"sport"} and \texttt{"game"} of \texttt{ex:category}.
+$\Psi(SI)$ maps $e_1$ to the \acp{LCG} of \texttt{ex:UserShape}, and $e_2$ to the \acp{LCG} of \texttt{ex:HobbyShape} and \texttt{ex:ClubShape}.
+
+The refined \acsp{LCG} distinguish the alternatives of the shapes,
+at the cost of a number of \acsp{LCG} that grows with the number of alternatives.
+The coarse \acsp{LCG} can therefore be used alone when memory is limited or when the shapes have many alternatives,
+at the cost of possibly selecting more sources.
+More generally, the \acsp{LCG} could form several levels of refinement between the coarse and the refined \acsp{LCG}, which we leave for future work.
+
+\ac{SASS} extends the result-aware source selection of FedUP~\cite{aimonierdavat:hal-04538238} with the information that only shapes provide,
+namely which combinations of predicates an entity can have and which values its objects can take.
+It keeps FedUP as its first stage, with $\sols$ evaluated over the coarse \acsp{LCG} instead of a HiBISCuS-type summary, which yields a unions-over-joins plan $\fmu(\Phi)$.
+It then prunes the subplans of $\Phi$ that FedUP cannot rule out, in two shape-aware stages.
+The second stage removes the subplans that have no solution over the refined \acsp{LCG}, because they combine predicates that no single alternative of a shape allows.
+The third stage removes the subplans whose solutions require values that the shapes forbid,
+which a constraint solver decides from the constraints of the matched terms together with the filters of the query,
+whereas FedUP removes most filters on its summaries and replaces every literal by the same term.
+Since the \acp{LCG} contain identifiers rather than the terms of the data, the query is first rewritten so that its evaluation over the \acp{LCG} only over-approximates its solutions,
+and the information removed by this rewriting is restored as constraints in the third stage.
+Each stage only prunes subplans, so the stages are ordered from the cheapest to the most expensive,
+and the solver is only called on the subplans that survive the first two.
+
+\lstinputlisting[caption={Shape index of the running example of \cref{fig:running-example}, serialized with the shape index vocabulary~\cite{tam2025}. Prefixes are omitted.},label={lst:running-example-si},basicstyle=\ttfamily\footnotesize]{code/example_shape_index.ttl}
 
 \begin{figure}[t]
   \centering
@@ -199,186 +270,11 @@ and \texttt{(foaf:name, LITERAL, true)} only with shapes having an object constr
   \begin{minipage}[t]{0.48\textwidth}
     \lstinputlisting[firstline=6, lastline=10]{code/example_summary_user_refined.ttl}
   \end{minipage}
-  \caption{Shapes of the running example and their coarse and refined \acsp{LCG}.
+  \caption{Shapes of the running example and their coarse and refined \acp{LCG}.
   Prefixes are omitted.}
   \label{fig:running-example}
 \end{figure}
 
-\Cref{fig:running-example} presents the shapes of a running example and their \acsp{LCG},
-for a federation of two endpoints described by the shape index of \cref{lst:running-example-si},
-so $e_1$ stores the users and $e_2$ stores the hobbies and clubs.
-
-\lstinputlisting[caption={Shape index of the running example of \cref{fig:running-example}, serialized with the shape index vocabulary~\cite{tam2025}. Prefixes are omitted.},label={lst:running-example-si},basicstyle=\ttfamily\footnotesize]{code/example_shape_index.ttl}
-
-We describe each endpoint with the shapes it stores,
-translated into \acp{LCG}, which are small \acp{KG} that can be queried like data.
-Each shape becomes a \ac{KG} whose only subject is the \ac{IRI} of the shape,
-with the triples of its triple constraints, as for \texttt{ex:UserShape} in \cref{fig:running-example}.
-The object of such a triple depends on the constraint on the object.
-A reference to another shape becomes the \ac{IRI} of that shape,
-which is the subject of its own \ac{KG}, so that the \acp{KG} are connected like the data they describe.
-Allowed values are kept as they are,
-and any other constraint becomes a fresh \ac{IRI}, such as \texttt{ex:l1}, standing for the terms satisfying it.
-Each \ac{KG} comes with constraints, recording what its \acp{IRI} stand for,
-and with links, recording which endpoints can share the objects of its triples.
-A shape with several alternatives can either be translated into a single \ac{KG}, in the \emph{coarse} \acsp{LCG},
-or into one \ac{KG} per alternative, in the \emph{refined} \acsp{LCG},
-as shown for \texttt{ex:UserShape} in \cref{fig:running-example}.
-
-\begin{definition}[\aclp{LCG} of a shape index]\label{def:summary}
-Let $SI$ be a shape index.
-Each triple constraint $\tau = (p, C_O, r)$ of a shape of $SI$ has a set of objects $\mathit{obj}(\tau)$, which is
-(i) $\{ s_k \}$ when $C_O = @s_k$ with $s_k \in \mathrm{dom}(SI)$,
-(ii) the listed values when $C_O$ lists the allowed values, and
-(iii) $\{ \iota_\tau \}$ otherwise, where $\iota_\tau$ is a fresh \ac{IRI} called the \emph{identifier} of $\tau$.
-The constraint of $\iota_\tau$ is $c_\tau = s_k$ when $C_O = @s_k$, and $c_\tau = C_O$ otherwise.
-For a shape $s_i = (t_i, \mathit{TC}_i) \in \mathrm{dom}(SI)$ and a set of alternatives $\mathcal{A} \subseteq \mathit{TC}_i$,
-the \ac{LCG} $\pi(s_i, \mathcal{A}) = (S, C, L)$ consists of the \ac{KG}
-$S = \{ (s_i, p, o) \mid A \in \mathcal{A},\ \tau = (p, C_O, r) \in A,\ o \in \mathit{obj}(\tau) \}$,
-the constraints
-$C = \{ s_i \mapsto (t_i, \mathcal{A}) \} \cup \{ \iota_\tau \mapsto c_\tau \mid A \in \mathcal{A},\ \tau \in A,\ \mathit{obj}(\tau) = \{ \iota_\tau \} \}$,
-and the links
-$L = \{ (s_i, p, o) \mapsto \mathit{link}(\tau) \mid A \in \mathcal{A},\ \tau = (p, C_O, r) \in A,\ o \in \mathit{obj}(\tau) \}$
-mapping each triple to the endpoints linked by its triple constraint, as in \cref{def:link}.
-A shape is converted into $\sigma(s_i) = \{ \pi(s_i, \mathit{TC}_i) \}$ in the \emph{coarse} \acsp{LCG},
-and into $\sigma(s_i) = \{ \pi(s_i, \{ A_j \}) \mid A_j \in \mathit{TC}_i \}$ in the \emph{refined} \acsp{LCG}.
-The \acp{LCG} of $SI$ map each endpoint to the \acp{LCG} of the shapes it stores,
-$\Psi(SI) = \{ e \mapsto \bigcup \{ \sigma(s_i) \mid s_i \in \mathrm{dom}(SI) \land e \in SI(s_i) \} \mid e \in E_{SI} \}$.
-\end{definition}
-
-A reference $@s_k$ to a shape of $SI$ produces the \ac{IRI} $s_k$ as object, which is also the subject of the \acp{KG} of $s_k$,
-so the \acp{KG} of two linked shapes share a term even when the shapes are stored in different endpoints,
-and the links $L$ give the other endpoints that can share the objects of each triple.
-
-In the coarse \acsp{LCG} of \cref{fig:running-example}, $\sigma(\texttt{ex:UserShape})$ contains a single \ac{LCG},
-whose \ac{KG} has the subject \texttt{ex:UserShape},
-and whose constraints map \texttt{ex:l1} to \texttt{ex:l4} to \texttt{LITERAL}, \texttt{xsd:string}, \texttt{xsd:string}, and \texttt{xsd:integer} with a maximum of 150.
-Its links map the triple of \texttt{ex:hobby} to $\{e_2\}$, and the triple of \texttt{foaf:name} to $\{e_1, e_2\}$, since a name of a user can also be a name of a hobby.
-In the refined \acsp{LCG}, $\sigma(\texttt{ex:UserShape})$ contains one \ac{LCG} per alternative,
-whose \acp{KG} share the subject \texttt{ex:UserShape} and whose constraints map it to a different alternative.
-The identifier \texttt{ex:l4} occurs in both \acp{LCG}, since \texttt{foaf:age} is outside the alternatives.
-The \ac{KG} of \texttt{ex:HobbyShape} keeps the values \texttt{"sport"} and \texttt{"game"} of \texttt{ex:category}.
-$\Psi(SI)$ maps $e_1$ to the \acp{LCG} of \texttt{ex:UserShape}, and $e_2$ to the \acp{LCG} of \texttt{ex:HobbyShape} and \texttt{ex:ClubShape}.
-
-% TODO move to source selection
-% Each term of a summary stands for a set of terms of the federation, called its \emph{extension}.
-% The extension of a node $n \in N_i$ is the set of entities conforming to $s_i$, or to the alternative of $n$ in the refined summary,
-% the extension of an identifier $\iota_\tau$ is the set of terms satisfying the $C_O$ of $\tau$,
-% and the extension of a listed term is the term itself.
-% Two terms of the summaries \emph{match} if their extensions can intersect over a \ac{KG} in which every triple is described by a shape of $SI$, as in \cref{def:link}, which a solver decides from the shapes.
-% In particular, two nodes match if an entity can conform to both, which requires each to accept the predicates the other requires.
-% For instance, \texttt{ex:l1} and \texttt{ex:l5} match, since a literal of type \texttt{xsd:string} satisfies both \texttt{LITERAL} and \texttt{xsd:string},
-% whereas \texttt{ex:l4} and \texttt{"game"} do not, since \texttt{"game"} is not an integer,
-% and \texttt{ex:UserShape} and \texttt{ex:ClubShape} do not, since a club has an \texttt{ex:practices} that the closed shape of users does not accept.
-
-The refined \acsp{LCG} distinguish the alternatives of the shapes,
-at the cost of a number of \acsp{LCG} that grows with the number of alternatives.
-The coarse \acsp{LCG} can therefore be used alone when memory is limited or when the shapes have many alternatives,
-at the cost of possibly selecting more sources.
-More generally, the \acsp{LCG} could form several levels of refinement between the coarse and the refined \acsp{LCG}, which we leave for future work.
-% TODO use for the filter check:
-% Such constraints can be expressed in SPARQL by using functions such as \texttt{isIRI} and \texttt{datatype}, or by additional triple patterns ensuring that the object satisfies another shape.%
-% \footnote{\href{https://www.w3.org/TR/sparql11-query/\#func-rdfTerms}{SPARQL 1.1 RDF term functions}}
-% For nested shape constraints, this translation relies on combining triple-pattern matching with these SPARQL expressions.
-\iffalse
-We call our approach \emph{\ac{SASS}}: a result-aware source-selection procedure that operates over an \ac{SGSC} rather than a plain HiBISCuS-type summary.
-To position SASS with respect to prior work, we first restate the Result-Aware source-selection procedure used in FedUP.
-\Cref{alg:fedup-result-aware} is reproduced from FedUP (Algorithm 1)~\cite{aimonierdavat:hal-04538238}.
-
-\begin{algorithm}
-  \caption{Result-Aware source-selection procedure reproduced from FedUP (Algorithm 1)~\cite{aimonierdavat:hal-04538238}.}\label{alg:fedup-result-aware}
-  \begin{algorithmic}[1]
-    \Function{A}{$Q, F$}
-      \State \Return $\fmu(A'(Q, F))$
-    \EndFunction
-    \Function{$A'$}{$Q, F$}
-      \State $\Phi_o \gets \emptyset$
-      \If{$Q$ is a triple pattern $\mathrm{tp}$}
-        \State $\Phi_o \gets \Phi_o \cup \{\freq_{\mathrm{tp}}^{f} \mid f \in F\}$
-      \ElsIf{$Q$ is $(P_1 \Join P_2)$}
-        \State $\Phi_1, \Phi_2 \gets A'(P_1, F), A'(P_2, F)$
-        \State $\Phi_o \gets \Phi_o \cup \{\fmj(\{\varphi_1, \varphi_2\}) \mid \varphi_1 \in \Phi_1 \land \varphi_2 \in \Phi_2\}$
-      \ElsIf{$Q$ is $(P_1 \cup P_2)$}
-        \State $\Phi_1, \Phi_2 \gets A'(P_1, F), A'(P_2, F)$
-        \State $\Phi_o \gets \Phi_o \cup \{\varphi \mid \varphi \in \Phi_1 \lor \varphi \in \Phi_2\}$
-      \ElsIf{$Q$ is $(P_1 \leftouterjoin P_2)$}
-        \State $\Phi_1, \Phi_2 \gets A'(P_1, F), A'(P_2, F)$
-        \For{$\varphi_1 \in \Phi_1$}
-          \State $\Phi_{\mathrm{join}}^{\varphi_1} \gets \{\varphi_2 \mid \varphi_2 \in \Phi_2 \land \sols(\fmj(\{\varphi_1, \varphi_2\})) \neq \emptyset\}$
-          \If{$\Phi_{\mathrm{join}}^{\varphi_1} = \emptyset$}
-            \State $\Phi_o \gets \Phi_o \cup \{\varphi_1\}$
-          \Else
-            \State $\Phi_o \gets \Phi_o \cup \{\fleftjoin(\varphi_1, \fmu(\Phi_{\mathrm{join}}^{\varphi_1}))\}$
-          \EndIf
-        \EndFor
-      \ElsIf{$Q$ is $(P \text{ FILTER } R)$}
-        \State $\Phi \gets A'(P, F)$
-        \State $\Phi_o \gets \Phi_o \cup \{\ffilter_{R}(\varphi) \mid \varphi \in \Phi\}$
-      \EndIf
-      \State \Return $\{\varphi \mid \varphi \in \Phi_o \land \sols(\varphi) \neq \emptyset\}$
-    \EndFunction
-  \end{algorithmic}
-\end{algorithm}
-% I could calculate the time complexity of the algorithm
-
-The $\sols(\varphi)$ function evaluates query plan $\varphi$ against a HiBISCuS-type summary,
-returning the bag of results it produces.
-The goal of the result-aware source-selection algorithm is to generate an exhaustive set of
-relevant query plans and to evaluate each plan over the summary to determine which federation
-members cannot produce results for it.
-
-We propose to replace $\sols(\varphi)$ with $\sols_{\mathrm{SGSC}}(\varphi)$ throughout this algorithm.
-This modification is necessary because our proposed summary is not a \ac{KG}; it is an
-exclusive union of \ac{SGSC} branches, each paired with a shape constraint.
-
-\Cref{alg:sols-sgsc} presents $\sols_{\mathrm{SGSC}}(\varphi)$.
-The idea is to iterate over every branch of the exclusive union in $S$ and check whether that
-branch alone can answer the query derived from $\varphi$.
-For this purpose, we extend the signature of $\sols$ to $\sols(\varphi, S)$, where $S$ is the set of
-\ac{KG} instances over which the query is evaluated.
-The helper function $\mathrm{constraint}$ collects all \texttt{FILTER} expressions from the query plan into
-a single conjunctive expression; it also rewrites each ground term (IRI or literal) in a triple
-pattern into a fresh variable and adds an equality filter between that variable and the original term.
-
-In \cref{alg:sols-sgsc}, the condition $r_{\mathrm{bag}} \neq \emptyset \land C \land k$ has two purposes.
-First, $r_{\mathrm{bag}} \neq \emptyset$ confirms that evaluating $\varphi$ against branch $\mathrm{kg}$ yields at
-least one result on the summary.
-Second, the conjunct $C \land k$ checks whether the shape constraints $C$ of the branch are
-satisfiable together with the filter expression $k$ derived from $\varphi$.
-A branch that fails this satisfiability check is pruned: even if it produces results on the
-summary, those results cannot satisfy the query's filter constraints given the shape of the data.
-
-\begin{algorithm}
-  \caption{$\sols_{\mathrm{SGSC}}(\varphi, S)$ determines whether a query plan $\varphi$ can be answered by any member of the federation.}\label{alg:sols-sgsc}
-  \begin{algorithmic}[1]
-    \Function{$\sols_{\mathrm{SGSC}}$}{$\varphi, S$}
-      \For{$\mathrm{kg} \mapsto C \in S$}
-        \State $r_{\mathrm{bag}} \gets \sols(\varphi, \mathrm{kg})$
-        \State $k \gets \mathrm{constraint}(\varphi)$
-        \If{$r_{\mathrm{bag}} \neq \emptyset \land C \land k$}
-          \State \Return $r_{\mathrm{bag}}$
-        \EndIf
-      \EndFor
-      \State \Return $\emptyset$
-    \EndFunction
-  \end{algorithmic}
-\end{algorithm}
-
-% time complexity here too
-\paragraph{Soundness}
-\ac{SASS} preserves the soundness guarantee of FedUP~\cite{aimonierdavat:hal-04538238}:
-if $\sols_{\mathrm{SGSC}}(\varphi, S) = \emptyset$, then no member of the
-federation can produce a non-empty result for $\varphi$.
-This follows from the \ac{SGSC} definition: by construction, every endpoint's data
-conforms to at least one branch $\mathrm{kg} \to C$ in $S$.
-If every branch fails the condition $r_{\mathrm{bag}} \neq \emptyset \land C \land k$, then no conforming
-endpoint can satisfy both the structural requirements of $\varphi$ and its filter constraints,
-and the federation engine may safely prune this plan.
-
-% there is more to say here
-%
-%
-\fi
 \subsection{Expressiveness compared to other approaches}\label{sec:expressiveness}
 
 %This is another aspect in which \ac{SGSC} is more expressive than HiBISCuS-type summaries: FedUP uses the term \texttt{"any"} when an object is a literal~\cite{aimonierdavat:hal-04538238}, whereas an \ac{SGSC} can encode substantially more precise object-level conditions.

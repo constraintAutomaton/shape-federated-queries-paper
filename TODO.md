@@ -39,6 +39,8 @@
 - [ ] Define `sols` over this summary, replacing Algorithm 2 (unsound: per endpoint instead of per entity)
 - [ ] Treat `IRI_i` as one source group per shape (relaxed locality), so star joins across its endpoints are not lost
 - [ ] Constants in queries: replace by fresh variables (sound, less precise than FedUP authorities), state the loss
+- [ ] Authorities in shape IRIs: encode the authorities of a shape's entities in its IRI so constant IRIs can be pruned as in FedUP (see TODO comment after the `sh` sentence)
+  - [ ] Experiment: compare source selection with and without authorities on queries with constant IRIs (FedShop, LargeRDFBench) against FedUP
 - [ ] Choose how to avoid the disjunction explosion: (A) coarse summary first then refine, or (B) choice variables in the rewritten query
 - [ ] Soundness proposition: representativeness for every subexpression (closed shapes, coverage, links)
 - [ ] Filter check (use the commented TODO SPARQL sentences)

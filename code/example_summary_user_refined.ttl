@@ -1,10 +1,10 @@
 ex:UserShape
     foaf:name ex:l1 ;
-    foaf:age ex:l4 ;
+    foaf:age ex:l3 ;
     ex:hobby ex:HobbyShape .
 
 ex:UserShape
     foaf:givenName ex:l2 ;
-    foaf:familyName ex:l3 ;
-    foaf:age ex:l4 ;
+    foaf:familyName ex:l2 ;
+    foaf:age ex:l3 ;
     ex:hobby ex:HobbyShape .
