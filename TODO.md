@@ -38,10 +38,15 @@
 - [ ] Summary as a quotient of the federation built from the shape index (one named graph per endpoint IRI)
 - [ ] Define `sols` over this summary, replacing Algorithm 2 (unsound: per endpoint instead of per entity)
 - [ ] Treat `IRI_i` as one source group per shape (relaxed locality), so star joins across its endpoints are not lost
-- [ ] Constants in queries: replace by fresh variables (sound, less precise than FedUP authorities), state the loss
-- [ ] Authorities in shape IRIs: encode the authorities of a shape's entities in its IRI so constant IRIs can be pruned as in FedUP (see TODO comment after the `sh` sentence)
-  - [ ] Experiment: compare source selection with and without authorities on queries with constant IRIs (FedShop, LargeRDFBench) against FedUP
-- [ ] Choose how to avoid the disjunction explosion: (A) coarse summary first then refine, or (B) choice variables in the rewritten query
+- [ ] Rewrite: constants → VALUES over allowed bindings (listed value, identifiers, shape IRIs n_k with the constant in ent(s_k)), checked in stage 1
+- [x] Entity IRIs: `C_E` in the shape (Def. 3), `sel(t)` after Def. 2, `ent(s)` = `sel(t)` ∩ I satisfying `C_E`; replaces authorities (no index or vocabulary change)
+  - [ ] Experiment: compare source selection with and without `C_E` on queries with constant IRIs (FedShop, LargeRDFBench) against FedUP
+  - [ ] Future work: `sel(t)` for class and other data-dependent targets
+- [x] O1–O3 taxonomy of object constraints in the source selection (`C_O` as a set of options, `obj` as a union over options, links through `N(c)`); "never a subject" assumption dropped, ASK prunes `N(c)` per (shape, predicate)
+  - [ ] `si:Reach` example in `code/example_shape_index.ttl` (shape, predicate, reached shapes, `prov:generatedAtTime`)
+  - [ ] ASK query: restrict `?x` to entities of `s_i` (target or required predicate) to avoid false positives from other shapes of the same endpoint
+- [ ] Running example: exercise `C_E` or a node target, so `sel`/`ent` are illustrated
+- [x] Choose how to avoid the disjunction explosion: (A) coarse summary first then refine
 - [ ] Soundness proposition: representativeness for every subexpression (closed shapes, coverage, links)
 - [ ] Filter check (use the commented TODO SPARQL sentences)
 - [ ] Complexity remark (summary size per shape, alternative cap)
